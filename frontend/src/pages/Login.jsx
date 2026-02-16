@@ -27,27 +27,45 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      {/* Minimal decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-      </div>
-
-      {/* Login Card - Minimal Design */}
-      <div className="relative w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-          {/* Header */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mb-4">
-              <LogIn className="text-white" size={28} />
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="relative w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="hidden lg:flex flex-col justify-between p-10 rounded-3xl ui-card">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-700 text-xs font-semibold">
+              Student Management System
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">Welcome Back</h1>
-            <p className="text-slate-500 text-sm">Sign in to your account</p>
+            <h1 className="text-4xl font-bold mt-6 leading-tight text-slate-900">
+              Manage students with
+              <span className="text-teal-600"> clarity</span> and
+              <span className="text-teal-600"> speed</span>.
+            </h1>
+            <p className="text-slate-600 mt-4">
+              Search instantly, view detailed records, and keep everything organized in one place.
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-teal-500 flex items-center justify-center text-white font-bold">
+              SM
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">Secure access</p>
+              <p className="text-base font-semibold text-slate-900">Admin dashboard</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="ui-card rounded-3xl p-8 sm:p-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Sign in</h2>
+              <p className="text-slate-500 text-sm mt-1">Use your admin credentials</p>
+            </div>
+            <div className="h-12 w-12 rounded-2xl bg-teal-500 flex items-center justify-center">
+              <LogIn className="text-white" size={22} />
+            </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5 mt-8">
             {/* Username Field */}
             <div>
               <label className="block text-slate-700 text-sm font-medium mb-2">
@@ -60,7 +78,7 @@ const Login = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="admin"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition"
                   disabled={loading}
                 />
               </div>
@@ -78,7 +96,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition"
                   disabled={loading}
                 />
               </div>
@@ -96,7 +114,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-8 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              className="w-full mt-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -112,18 +130,10 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-slate-200"></div>
-            <span className="text-slate-400 text-xs">Demo Credentials</span>
-            <div className="flex-1 h-px bg-slate-200"></div>
-          </div>
-
-          {/* Demo Info */}
-          <div className="bg-blue-50 rounded-lg p-3 text-sm text-slate-700">
-            <p className="font-medium mb-1">Demo Account:</p>
-            <p className="text-slate-600">Username: <span className="font-mono font-semibold">admin</span></p>
-            <p className="text-slate-600">Password: <span className="font-mono font-semibold">admin123</span></p>
+          <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm">
+            <p className="text-slate-600">
+              Demo: <span className="font-semibold">admin</span> / <span className="font-semibold">admin123</span>
+            </p>
           </div>
         </div>
       </div>

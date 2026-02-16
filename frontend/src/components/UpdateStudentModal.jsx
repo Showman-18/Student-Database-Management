@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import axios from '../api/axios';
 
-const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
+const UpdateStudentModal = ({ student, isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     grNo: '',
@@ -21,6 +21,24 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
+  useEffect(() => {
+    if (student) {
+      setFormData({
+        fullName: student.fullName || '',
+        grNo: student.grNo || '',
+        panNo: student.panNo || '',
+        phoneNumber: student.phoneNumber || '',
+        caste: student.caste || '',
+        religion: student.religion || '',
+        address: student.address || '',
+        fatherName: student.fatherName || '',
+        fatherContact: student.fatherContact || '',
+        motherName: student.motherName || '',
+        motherContact: student.motherContact || '',
+      });
+    }
+  }, [student]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -31,45 +49,33 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!student?._id) return;
+
     setError('');
     setSuccess('');
     setLoading(true);
 
     try {
-      await axios.post('/students', formData);
-      setSuccess('Student created successfully!');
-      setFormData({
-        fullName: '',
-        grNo: '',
-        panNo: '',
-        phoneNumber: '',
-        caste: '',
-        religion: '',
-        address: '',
-        fatherName: '',
-        fatherContact: '',
-        motherName: '',
-        motherContact: '',
-      });
+      await axios.put(`/students/${student._id}`, formData);
+      setSuccess('Student updated successfully!');
       setTimeout(() => {
         onSuccess?.();
         onClose();
-      }, 1500);
+      }, 1000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create student');
+      setError(err.response?.data?.message || 'Failed to update student');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !student) return null;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="ui-card rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="sticky top-0 flex justify-between items-center p-6 border-b border-slate-200 bg-white">
-          <h2 className="text-xl font-bold text-slate-900">Add New Student</h2>
+          <h2 className="text-xl font-bold text-slate-900">Update Student</h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-2 transition"
@@ -78,9 +84,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
           </button>
         </div>
 
-        {/* Content */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          {/* Success Message */}
           {success && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-3">
               <span className="text-lg">✓</span>
@@ -88,7 +92,6 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-3">
               <span className="text-lg">!</span>
@@ -96,7 +99,6 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Basic Information */}
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
               Basic Information
@@ -141,7 +143,6 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Personal Details */}
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
               Personal Details
@@ -166,7 +167,6 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Address */}
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
               Address
@@ -181,7 +181,6 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             />
           </div>
 
-          {/* Parent Details */}
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
               Parent Information
@@ -223,7 +222,6 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
         </form>
 
-        {/* Footer */}
         <div className="sticky bottom-0 p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
           <button
             onClick={onClose}
@@ -236,7 +234,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             disabled={loading}
             className="px-6 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Creating...' : 'Create Student'}
+            {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -244,4 +242,4 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-export default CreateStudentModal;
+export default UpdateStudentModal;
