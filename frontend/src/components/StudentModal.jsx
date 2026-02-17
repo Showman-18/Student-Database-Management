@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Phone, MapPin, Users, CreditCard, Calendar, Plus } from 'lucide-react';
+import { X, User, Phone, MapPin, Users, CreditCard, Calendar, Plus, Edit2, Trash2 } from 'lucide-react';
 import FeesPaymentModal from './FeesPaymentModal';
 import AddYearModal from './AddYearModal';
 
@@ -65,14 +65,14 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
       <div
         key={term}
         onClick={() => handleFeesCardClick(term, year, status)}
-        className={`p-4 border-2 rounded-xl transition ${getStatusColor(
+        className={`p-4 rounded-2xl border-2 transition ${getStatusColor(
           status
-        )} ${status === 'pending' ? 'cursor-pointer hover:shadow-md' : ''}`}
+        )} ${status === 'pending' ? 'cursor-pointer hover:shadow-lg' : ''}`}
       >
         <div className="flex justify-between items-start mb-3">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide">{termLabel}</p>
-            <p className={`text-xs font-semibold mt-1 inline-block px-2 py-1 rounded-lg ${getStatusBadgeColor(status)}`}>
+            <p className={`text-xs font-semibold mt-1 inline-block px-2.5 py-1 rounded-lg ${getStatusBadgeColor(status)}`}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </p>
           </div>
@@ -86,13 +86,13 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
             {termData.receiptNo && (
               <div>
                 <p className="text-xs opacity-75">Receipt No</p>
-                <p className="font-mono font-semibold">{termData.receiptNo}</p>
+                <p className="font-mono font-semibold text-xs">{termData.receiptNo}</p>
               </div>
             )}
             {termData.modeOfPayment && (
               <div>
                 <p className="text-xs opacity-75">Payment Mode</p>
-                <p className="font-semibold capitalize">{termData.modeOfPayment.replace('_', ' ')}</p>
+                <p className="font-semibold capitalize text-xs">{termData.modeOfPayment.replace('_', ' ')}</p>
               </div>
             )}
             {termData.amount && (
@@ -104,13 +104,13 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
             {termData.paidDate && (
               <div>
                 <p className="text-xs opacity-75">Paid Date</p>
-                <p className="font-semibold">{new Date(termData.paidDate).toLocaleDateString('en-IN')}</p>
+                <p className="font-semibold text-xs">{new Date(termData.paidDate).toLocaleDateString('en-IN')}</p>
               </div>
             )}
             {termData.comment && (
               <div>
                 <p className="text-xs opacity-75">Comments</p>
-                <p className="font-semibold text-sm break-words">{termData.comment}</p>
+                <p className="font-semibold text-xs break-words">{termData.comment}</p>
               </div>
             )}
           </div>
@@ -125,67 +125,83 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="ui-card rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 flex justify-between items-center p-6 border-b border-slate-200 bg-white">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-teal-600 rounded-2xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">{student.fullName.charAt(0).toUpperCase()}</span>
+      <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
+        {/* Header with Gradient Background */}
+        <div className="sticky top-0 bg-gradient-to-r from-teal-500 to-cyan-500 px-8 py-8 text-white z-40">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center border-2 border-white/30">
+                <span className="text-white font-bold text-2xl">{student.fullName.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">{student.fullName}</h2>
+                <p className="text-white/80 text-sm mt-1">{student.grNo}</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">{student.fullName}</h2>
-              <p className="text-slate-500 text-sm">{student.grNo}</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition text-white"
+            >
+              <X size={24} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-2 transition"
-          >
-            <X size={24} />
-          </button>
         </div>
 
         {/* Content */}
         <div className="p-8 space-y-8">
-          {/* Quick Info */}
+          {/* Contact Information Card */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-start gap-3 p-3 bg-teal-50 rounded-xl border border-teal-100">
-              <User className="text-teal-700 mt-1" size={18} />
-              <div>
-                <p className="text-slate-600 text-xs font-medium uppercase tracking-wide">PAN No</p>
-                <p className="text-slate-900 font-semibold mt-0.5">{student.panNo}</p>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-200 rounded-lg">
+                  <Phone size={18} className="text-blue-700" />
+                </div>
+                <p className="text-slate-600 text-xs font-bold uppercase">Phone</p>
               </div>
+              <p className="text-slate-900 font-semibold text-lg">{student.phoneNumber}</p>
             </div>
-            <div className="flex items-start gap-3 p-3 bg-cyan-50 rounded-xl border border-cyan-100">
-              <Phone className="text-cyan-700 mt-1" size={18} />
-              <div>
-                <p className="text-slate-600 text-xs font-medium uppercase tracking-wide">Phone</p>
-                <p className="text-slate-900 font-semibold mt-0.5">{student.phoneNumber}</p>
+
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-purple-200 rounded-lg">
+                  <User size={18} className="text-purple-700" />
+                </div>
+                <p className="text-slate-600 text-xs font-bold uppercase">PAN No</p>
               </div>
+              <p className="text-slate-900 font-semibold text-lg">{student.panNo}</p>
             </div>
           </div>
 
           {/* Personal Details */}
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Personal Information</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border border-slate-200 rounded-lg hover:border-slate-300 transition">
-                <p className="text-slate-500 text-xs font-medium mb-1">CASTE</p>
-                <p className="text-slate-900 font-semibold">{student.caste || '—'}</p>
-              </div>
-              <div className="p-4 border border-slate-200 rounded-lg hover:border-slate-300 transition">
-                <p className="text-slate-500 text-xs font-medium mb-1">RELIGION</p>
-                <p className="text-slate-900 font-semibold">{student.religion || '—'}</p>
+          {(student.caste || student.religion) && (
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <User size={16} className="text-teal-600" /> Personal Details
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {student.caste && (
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <p className="text-slate-500 text-xs font-bold mb-2">CASTE</p>
+                    <p className="text-slate-900 font-semibold">{student.caste}</p>
+                  </div>
+                )}
+                {student.religion && (
+                  <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <p className="text-slate-500 text-xs font-bold mb-2">RELIGION</p>
+                    <p className="text-slate-900 font-semibold">{student.religion}</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
           {/* Address */}
           {student.address && (
             <div>
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Address</h3>
-              <div className="flex gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50">
-                <MapPin className="text-slate-400 mt-1 flex-shrink-0" size={18} />
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <MapPin size={16} className="text-teal-600" /> Address
+              </h3>
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-6 border border-amber-200">
                 <p className="text-slate-700 leading-relaxed">{student.address}</p>
               </div>
             </div>
@@ -194,40 +210,44 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           {/* Parent Details */}
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Users size={16} /> Parent Information
+              <Users size={16} className="text-teal-600" /> Parent Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               {/* Father */}
-              <div className="border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 transition">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-slate-200">
-                  <p className="text-blue-900 font-bold text-sm">Father</p>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-1">NAME</p>
-                    <p className="text-slate-900 font-semibold">{student.fatherName || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-1">CONTACT</p>
-                    <p className="text-slate-900 font-semibold">{student.fatherContact || '—'}</p>
-                  </div>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border-l-4 border-l-blue-500 border border-blue-200">
+                <h4 className="text-blue-900 font-bold text-sm mb-4">Father</h4>
+                <div className="space-y-3">
+                  {student.fatherName && (
+                    <div>
+                      <p className="text-slate-500 text-xs font-bold mb-1">NAME</p>
+                      <p className="text-slate-900 font-semibold">{student.fatherName}</p>
+                    </div>
+                  )}
+                  {student.fatherContact && (
+                    <div>
+                      <p className="text-slate-500 text-xs font-bold mb-1">CONTACT</p>
+                      <p className="text-slate-900 font-semibold">{student.fatherContact}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Mother */}
-              <div className="border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 transition">
-                <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-4 py-3 border-b border-slate-200">
-                  <p className="text-purple-900 font-bold text-sm">Mother</p>
-                </div>
-                <div className="p-4 space-y-3">
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-1">NAME</p>
-                    <p className="text-slate-900 font-semibold">{student.motherName || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-1">CONTACT</p>
-                    <p className="text-slate-900 font-semibold">{student.motherContact || '—'}</p>
-                  </div>
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border-l-4 border-l-purple-500 border border-purple-200">
+                <h4 className="text-purple-900 font-bold text-sm mb-4">Mother</h4>
+                <div className="space-y-3">
+                  {student.motherName && (
+                    <div>
+                      <p className="text-slate-500 text-xs font-bold mb-1">NAME</p>
+                      <p className="text-slate-900 font-semibold">{student.motherName}</p>
+                    </div>
+                  )}
+                  {student.motherContact && (
+                    <div>
+                      <p className="text-slate-500 text-xs font-bold mb-1">CONTACT</p>
+                      <p className="text-slate-900 font-semibold">{student.motherContact}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -237,11 +257,11 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           <div>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <CreditCard size={16} /> Fees Payment History
+                <CreditCard size={16} className="text-teal-600" /> Fees Payment History
               </h3>
               <button
                 onClick={() => setAddYearModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium text-xs"
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium text-xs border border-teal-200"
               >
                 <Plus size={14} />
                 Add Year
@@ -255,12 +275,10 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
                   const yearFeesHistory = getFeesHistoryForYear(year);
                   return (
                     <div key={year}>
-                      {/* Year Heading */}
-                      <h4 className="text-lg font-bold text-slate-900 mb-4 pb-3 border-b-2 border-teal-200">
+                      <h4 className="text-lg font-bold text-slate-900 mb-4 pb-3 border-b-2 border-teal-300">
                         {year}
                       </h4>
                       
-                      {/* Fees Cards for this year */}
                       <div className="grid grid-cols-3 gap-4">
                         {renderFeesCard('term1', 'Term 1', yearFeesHistory)}
                         {renderFeesCard('term2', 'Term 2', yearFeesHistory)}
@@ -271,11 +289,14 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
                 })}
               </div>
             ) : (
-              <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center">
+              <div className="p-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl text-center">
+                <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CreditCard className="text-slate-400" size={24} />
+                </div>
                 <p className="text-slate-600 text-sm font-medium mb-3">No fees history yet</p>
                 <button
                   onClick={() => setAddYearModal(true)}
-                  className="inline-flex items-center gap-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium text-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium text-sm"
                 >
                   <Plus size={16} />
                   Add First Year
@@ -286,22 +307,24 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+        <div className="sticky bottom-0 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200 px-8 py-6 flex justify-end gap-3">
           <button
             onClick={() => onDelete?.(student)}
-            className="px-6 py-2.5 border border-red-200 text-red-700 rounded-xl hover:bg-red-50 transition font-medium text-sm"
+            className="flex items-center gap-2 px-6 py-2.5 border border-red-200 text-red-700 rounded-xl hover:bg-red-50 transition font-medium text-sm"
           >
+            <Trash2 size={16} />
             Delete
           </button>
           <button
             onClick={() => onEdit?.(student)}
-            className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 transition font-medium text-sm"
+            className="flex items-center gap-2 px-6 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 transition font-medium text-sm"
           >
+            <Edit2 size={16} />
             Edit
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition font-medium text-sm"
+            className="px-6 py-2.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-xl hover:shadow-lg transition font-medium text-sm"
           >
             Close
           </button>
@@ -315,7 +338,6 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           isOpen={feesModal.isOpen}
           onClose={() => setFeesModal({ isOpen: false, year: null, term: null })}
           onSuccess={() => {
-            // Refresh student data
             onSuccess?.();
             setFeesModal({ isOpen: false, year: null, term: null });
           }}
