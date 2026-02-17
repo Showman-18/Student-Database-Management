@@ -31,6 +31,14 @@ const Dashboard = () => {
       setError('');
       const response = await axios.get('/students');
       setStudents(response.data);
+      
+      // Update selectedStudent if it's open
+      if (selectedStudent && isModalOpen) {
+        const updatedStudent = response.data.find((s) => s._id === selectedStudent._id);
+        if (updatedStudent) {
+          setSelectedStudent(updatedStudent);
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch students');
     } finally {
@@ -247,6 +255,7 @@ const Dashboard = () => {
         onClose={() => setIsModalOpen(false)}
         onEdit={handleEditStudent}
         onDelete={handleDeleteStudent}
+        onSuccess={fetchStudents}
       />
 
       <CreateStudentModal

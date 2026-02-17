@@ -115,4 +115,81 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+// Update fees payment details (Protected)
+router.put('/:id/fees/:year/:term', verifyToken, async (req, res) => {
+  try {
+    const { id, year, term } = req.params;
+    const { status, receiptNo, modeOfPayment, amount, paidDate, comment } = req.body;
+
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Find or create fees history for the year
+    let feesEntry = student.feesHistory.find((entry) => entry.year === parseInt(year));
+    if (!feesEntry) {
+      feesEntry = {
+        year: parseInt(year),
+        term1: { status: 'pending' },
+        term2: { status: 'pending' },
+        other: { status: 'pending' },
+      };
+      student.feesHistory.push(feesEntry);
+    }
+
+    // Update the specific term
+    if (feesEntry[term]) {
+      feesEntry[term].status = status;
+      if (receiptNo) feesEntry[term].receiptNo = receiptNo;
+      if (modeOfPayment) feesEntry[term].modeOfPayment = modeOfPayment;
+      if (amount) feesEntry[term].amount = amount;
+      if (paidDate) feesEntry[term].paidDate = paidDate;
+      if (comment) feesEntry[term].comment = comment;
+    }
+
+    await student.save();
+    res.json({ message: 'Fees updated successfully', student });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating fees', error: error.message });
+  }
+});
+
+// Add new year to fees history (Protected)
+router.post('/:id/fees/year', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { year } = req.body;
+
+    // Validate year
+    if (!year || isNaN(year) || year < 1900 || year > 2100) {
+      return res.status(400).json({ message: 'Invalid year provided' });
+    }
+
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Check if year already exists
+    const yearExists = student.feesHistory.find((entry) => entry.year === parseInt(year));
+    if (yearExists) {
+      return res.status(400).json({ message: `Fees history for year ${year} already exists` });
+    }
+
+    // Create new fees history entry for the year
+    student.feesHistory.push({
+      year: parseInt(year),
+      term1: { status: 'pending' },
+      term2: { status: 'pending' },
+      other: { status: 'pending' },
+    });
+
+    await student.save();
+    res.json({ message: 'Year added successfully', student });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding year', error: error.message });
+  }
+});
+
 module.exports = router;

@@ -52,8 +52,72 @@ const StudentSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    feesHistory: [
+      {
+        year: {
+          type: Number,
+          required: true,
+        },
+        term1: {
+          status: {
+            type: String,
+            enum: ['pending', 'paid', 'not applicable'],
+            default: 'pending',
+          },
+          receiptNo: String,
+          modeOfPayment: String,
+          amount: Number,
+          paidDate: Date,
+          comment: String,
+        },
+        term2: {
+          status: {
+            type: String,
+            enum: ['pending', 'paid', 'not applicable'],
+            default: 'pending',
+          },
+          receiptNo: String,
+          modeOfPayment: String,
+          amount: Number,
+          paidDate: Date,
+          comment: String,
+        },
+        other: {
+          status: {
+            type: String,
+            enum: ['pending', 'paid', 'not applicable'],
+            default: 'pending',
+          },
+          receiptNo: String,
+          modeOfPayment: String,
+          amount: Number,
+          paidDate: Date,
+          comment: String,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
+
+// Auto-generate fees history for current year if not present
+StudentSchema.pre('save', function (next) {
+  const currentYear = new Date().getFullYear();
+
+  // Check if fees history for current year exists
+  const currentYearHistory = this.feesHistory.find((entry) => entry.year === currentYear);
+
+  if (!currentYearHistory) {
+    // Create new fees history entry for current year
+    this.feesHistory.push({
+      year: currentYear,
+      term1: { status: 'pending' },
+      term2: { status: 'pending' },
+      other: { status: 'pending' },
+    });
+  }
+
+  next();
+});
 
 module.exports = mongoose.model('Student', StudentSchema);

@@ -1,8 +1,127 @@
-import React from 'react';
-import { X, User, Phone, MapPin, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, User, Phone, MapPin, Users, CreditCard, Calendar, Plus } from 'lucide-react';
+import FeesPaymentModal from './FeesPaymentModal';
+import AddYearModal from './AddYearModal';
 
-const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete }) => {
+const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess }) => {
+  const [feesModal, setFeesModal] = useState({ isOpen: false, year: null, term: null });
+  const [addYearModal, setAddYearModal] = useState(false);
+
   if (!isOpen || !student) return null;
+
+  const currentYear = new Date().getFullYear();
+  const allYears = student.feesHistory && student.feesHistory.length > 0 
+    ? student.feesHistory.map(entry => entry.year).sort((a, b) => b - a)
+    : [];
+
+  const getFeesHistoryForYear = (year) => {
+    if (!student.feesHistory || student.feesHistory.length === 0) {
+      return {
+        year: year,
+        term1: { status: 'pending' },
+        term2: { status: 'pending' },
+        other: { status: 'pending' },
+      };
+    }
+    
+    const entry = student.feesHistory.find((entry) => entry.year === year);
+    
+    if (!entry) {
+      return {
+        year: year,
+        term1: { status: 'pending' },
+        term2: { status: 'pending' },
+        other: { status: 'pending' },
+      };
+    }
+    
+    return entry;
+  };
+
+  const getStatusColor = (status) => {
+    if (status === 'paid') return 'bg-green-50 border-green-200 text-green-700';
+    if (status === 'pending') return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+    return 'bg-slate-50 border-slate-200 text-slate-700';
+  };
+
+  const getStatusBadgeColor = (status) => {
+    if (status === 'paid') return 'bg-green-100 text-green-700';
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-700';
+    return 'bg-slate-100 text-slate-700';
+  };
+
+  const handleFeesCardClick = (term, year, status) => {
+    if (status === 'pending') {
+      setFeesModal({ isOpen: true, year: year, term });
+    }
+  };
+
+  const renderFeesCard = (term, termLabel, feesHistory) => {
+    const termData = feesHistory?.[term];
+    const status = termData?.status || 'pending';
+    const year = feesHistory.year;
+
+    return (
+      <div
+        key={term}
+        onClick={() => handleFeesCardClick(term, year, status)}
+        className={`p-4 border-2 rounded-xl transition ${getStatusColor(
+          status
+        )} ${status === 'pending' ? 'cursor-pointer hover:shadow-md' : ''}`}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide">{termLabel}</p>
+            <p className={`text-xs font-semibold mt-1 inline-block px-2 py-1 rounded-lg ${getStatusBadgeColor(status)}`}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </p>
+          </div>
+          {status === 'paid' && termData && (
+            <CreditCard size={16} className="text-green-700" />
+          )}
+        </div>
+
+        {termData && (
+          <div className="space-y-2 text-sm">
+            {termData.receiptNo && (
+              <div>
+                <p className="text-xs opacity-75">Receipt No</p>
+                <p className="font-mono font-semibold">{termData.receiptNo}</p>
+              </div>
+            )}
+            {termData.modeOfPayment && (
+              <div>
+                <p className="text-xs opacity-75">Payment Mode</p>
+                <p className="font-semibold capitalize">{termData.modeOfPayment.replace('_', ' ')}</p>
+              </div>
+            )}
+            {termData.amount && (
+              <div>
+                <p className="text-xs opacity-75">Amount</p>
+                <p className="font-semibold">₹{termData.amount.toLocaleString('en-IN')}</p>
+              </div>
+            )}
+            {termData.paidDate && (
+              <div>
+                <p className="text-xs opacity-75">Paid Date</p>
+                <p className="font-semibold">{new Date(termData.paidDate).toLocaleDateString('en-IN')}</p>
+              </div>
+            )}
+            {termData.comment && (
+              <div>
+                <p className="text-xs opacity-75">Comments</p>
+                <p className="font-semibold text-sm break-words">{termData.comment}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {status === 'pending' && (
+          <p className="text-xs opacity-75 mt-3 italic">Click to record payment</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -113,6 +232,57 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete }) => {
               </div>
             </div>
           </div>
+
+          {/* Fees Payment History */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <CreditCard size={16} /> Fees Payment History
+              </h3>
+              <button
+                onClick={() => setAddYearModal(true)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium text-xs"
+              >
+                <Plus size={14} />
+                Add Year
+              </button>
+            </div>
+
+            {/* Display all years */}
+            {allYears.length > 0 ? (
+              <div className="space-y-8">
+                {allYears.map((year) => {
+                  const yearFeesHistory = getFeesHistoryForYear(year);
+                  return (
+                    <div key={year}>
+                      {/* Year Heading */}
+                      <h4 className="text-lg font-bold text-slate-900 mb-4 pb-3 border-b-2 border-teal-200">
+                        {year}
+                      </h4>
+                      
+                      {/* Fees Cards for this year */}
+                      <div className="grid grid-cols-3 gap-4">
+                        {renderFeesCard('term1', 'Term 1', yearFeesHistory)}
+                        {renderFeesCard('term2', 'Term 2', yearFeesHistory)}
+                        {renderFeesCard('other', 'Other', yearFeesHistory)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center">
+                <p className="text-slate-600 text-sm font-medium mb-3">No fees history yet</p>
+                <button
+                  onClick={() => setAddYearModal(true)}
+                  className="inline-flex items-center gap-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium text-sm"
+                >
+                  <Plus size={16} />
+                  Add First Year
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
@@ -136,6 +306,32 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete }) => {
             Close
           </button>
         </div>
+
+        {/* Fees Payment Modal */}
+        <FeesPaymentModal
+          student={student}
+          year={feesModal.year}
+          term={feesModal.term}
+          isOpen={feesModal.isOpen}
+          onClose={() => setFeesModal({ isOpen: false, year: null, term: null })}
+          onSuccess={() => {
+            // Refresh student data
+            onSuccess?.();
+            setFeesModal({ isOpen: false, year: null, term: null });
+          }}
+        />
+
+        {/* Add Year Modal */}
+        <AddYearModal
+          student={student}
+          isOpen={addYearModal}
+          onClose={() => setAddYearModal(false)}
+          existingYears={allYears}
+          onSuccess={() => {
+            onSuccess?.();
+            setAddYearModal(false);
+          }}
+        />
       </div>
     </div>
   );
