@@ -19,7 +19,7 @@ const Students = () => {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -107,57 +107,65 @@ const Students = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50/40 via-white to-green-50/30">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-gradient-to-b from-slate-900 to-slate-800 text-white transition-all duration-300 overflow-hidden flex flex-col`}>
-        <div className="p-6 border-b border-slate-700">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
-            Student DB
-          </h1>
-        </div>
+      <aside className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-100 transition-all duration-300 z-50 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            {sidebarOpen && (
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-600 rounded-xl text-white shadow-sm">
+                  <BarChart3 size={20} />
+                </div>
+                <span className="font-bold text-lg text-gray-900">SDBMS</span>
+              </div>
+            )}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
 
-        <nav className="flex-1 p-4 space-y-2">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-200 hover:bg-slate-700 transition text-left text-sm font-medium"
-          >
-            <BarChart3 size={18} />
-            Dashboard
-          </button>
-          <button
-            onClick={() => navigate('/students')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-teal-600 text-white transition text-left text-sm font-medium"
-          >
-            <Users size={18} />
-            Students
-          </button>
-        </nav>
+          <nav className="flex-1 px-4 py-6 space-y-1">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition text-left text-sm font-medium ${!sidebarOpen && 'justify-center'}`}
+            >
+              <BarChart3 size={20} />
+              {sidebarOpen && <span>Dashboard</span>}
+            </button>
+            <button
+              onClick={() => navigate('/students')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 text-emerald-700 transition text-left text-sm font-medium ${!sidebarOpen && 'justify-center'}`}
+            >
+              <Users size={20} />
+              {sidebarOpen && <span>Students</span>}
+            </button>
+          </nav>
 
-        <div className="p-4 border-t border-slate-700">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/20 border border-red-500/30 text-red-300 rounded-xl hover:bg-red-600/30 transition text-sm font-medium"
-          >
-            <LogOut size={16} />
-            Logout
-          </button>
+          <div className="p-4 border-t border-gray-100">
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition text-sm font-medium ${!sidebarOpen && 'justify-center'}`}
+            >
+              <LogOut size={16} />
+              {sidebarOpen && <span>Logout</span>}
+            </button>
+          </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <main className={`transition-all duration-300 min-h-screen flex flex-col ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
         {/* Top Bar */}
-        <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <h2 className="text-xl font-bold text-slate-900">Students</h2>
+        <div className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+          <h2 className="text-xl font-bold text-gray-900">Students</h2>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition font-medium text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-100 transition font-medium text-sm"
           >
             <Plus size={16} />
             Add Student
@@ -167,7 +175,7 @@ const Students = () => {
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-6">
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+            <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -175,26 +183,26 @@ const Students = () => {
           {/* Search Bar */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
+              <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
               <input
                 type="text"
                 placeholder="Search by name or GR number..."
                 value={searchQuery}
                 onChange={handleSearch}
-                className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition"
+                className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
               />
             </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition"
+              className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
             >
               <option value="name">Sort by Name</option>
               <option value="grNo">Sort by GR No</option>
             </select>
             <button
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-4 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+              className="px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition"
             >
               {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
             </button>
@@ -204,18 +212,18 @@ const Students = () => {
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-slate-600">Loading students...</p>
+                <div className="w-12 h-12 border-4 border-gray-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading students...</p>
               </div>
             </div>
           ) : filteredStudents.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Users size={48} className="text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-600 font-medium">No students found</p>
+                <Users size={48} className="text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No students found</p>
                 <button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-sm font-medium"
+                  className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-medium"
                 >
                   Add First Student
                 </button>
@@ -227,25 +235,25 @@ const Students = () => {
                 <div
                   key={student._id}
                   onClick={() => handleStudentClick(student)}
-                  className="bg-white rounded-2xl p-6 border border-slate-200 hover:border-teal-300 hover:shadow-lg transition cursor-pointer group"
+                  className="bg-white rounded-2xl p-6 border border-gray-100 shadow-soft hover:shadow-card hover:border-emerald-200 transition cursor-pointer group"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center text-white font-bold">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
                       {student.fullName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-900 truncate">{student.fullName}</h3>
-                      <p className="text-sm text-slate-500">{student.grNo}</p>
+                      <h3 className="font-bold text-gray-900 truncate">{student.fullName}</h3>
+                      <p className="text-sm text-gray-400">{student.grNo}</p>
                     </div>
                   </div>
 
                   <div className="space-y-2 mb-4">
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-gray-600">
                       <span className="font-semibold">Phone:</span> {student.phoneNumber}
                     </p>
                     {student.address && (
-                      <p className="text-sm text-slate-600 line-clamp-2">
-                        <span className="font-semibold">Address:</span> {student.address}
+                      <p className="text-sm text-gray-500 line-clamp-2">
+                        <span className="font-semibold text-gray-600">Address:</span> {student.address}
                       </p>
                     )}
                   </div>
@@ -256,7 +264,7 @@ const Students = () => {
                         e.stopPropagation();
                         handleEditStudent(student);
                       }}
-                      className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition font-medium text-sm"
+                      className="flex-1 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition font-medium text-sm"
                     >
                       Edit
                     </button>
@@ -265,7 +273,7 @@ const Students = () => {
                         e.stopPropagation();
                         handleDeleteStudent(student);
                       }}
-                      className="flex-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition font-medium text-sm"
+                      className="flex-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm"
                     >
                       Delete
                     </button>
@@ -275,7 +283,7 @@ const Students = () => {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Modals */}
       <StudentModal

@@ -44,17 +44,17 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="ui-card rounded-3xl max-w-md w-full">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-200 bg-white">
+        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-white rounded-t-3xl">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Add Fees History Year</h2>
-            <p className="text-slate-500 text-sm mt-0.5">{student.fullName}</p>
+            <h2 className="text-xl font-bold text-gray-900">Add Fees History Year</h2>
+            <p className="text-gray-400 text-sm mt-0.5">{student.fullName}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-2 transition"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition"
           >
             <X size={24} />
           </button>
@@ -65,7 +65,7 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error Message */}
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 text-red-700 text-sm">
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex gap-3 text-red-600 text-sm">
                 <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
                 <div>{error}</div>
               </div>
@@ -73,8 +73,8 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
 
             {/* Year Input */}
             <div>
-              <label className="block text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <Calendar size={16} className="text-teal-600" />
+              <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <Calendar size={16} className="text-emerald-600" />
                 Academic Year *
               </label>
               <input
@@ -84,25 +84,25 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
                 placeholder="e.g., 2024"
                 min="1900"
                 max="2100"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
               />
-              <p className="text-xs text-slate-500 mt-1">This will create Term 1, Term 2, and Other fees records</p>
+              <p className="text-xs text-gray-400 mt-1">This will create Term 1, Term 2, and Other fees records</p>
             </div>
           </form>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-white rounded-b-3xl">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 transition font-medium text-sm"
+            className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition font-medium text-sm disabled:opacity-50"
+            className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-50"
           >
             {loading ? 'Adding...' : 'Add Year'}
           </button>
