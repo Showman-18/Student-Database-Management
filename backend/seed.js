@@ -15,6 +15,28 @@ const sampleStudents = [
     fatherContact: '+1234567891',
     motherName: 'Mary Doe',
     motherContact: '+1234567892',
+    feesHistory: [
+      {
+        year: 2025,
+        term1: {
+          status: 'paid',
+          amount: 25000,
+          receiptNo: 'REC001',
+          modeOfPayment: 'Cash',
+          paidDate: new Date('2025-01-15'),
+        },
+        term2: {
+          status: 'paid',
+          amount: 25000,
+          receiptNo: 'REC002',
+          modeOfPayment: 'Online',
+          paidDate: new Date('2025-06-10'),
+        },
+        other: {
+          status: 'not applicable',
+        }
+      }
+    ]
   },
   {
     fullName: 'Sarah Johnson',
@@ -28,6 +50,24 @@ const sampleStudents = [
     fatherContact: '+1234567894',
     motherName: 'Lisa Johnson',
     motherContact: '+1234567895',
+    feesHistory: [
+      {
+        year: 2025,
+        term1: {
+          status: 'paid',
+          amount: 20000,
+          receiptNo: 'REC003',
+          modeOfPayment: 'Cheque',
+          paidDate: new Date('2025-02-20'),
+        },
+        term2: {
+          status: 'pending',
+        },
+        other: {
+          status: 'not applicable',
+        }
+      }
+    ]
   },
   {
     fullName: 'Priya Sharma',
@@ -41,6 +81,20 @@ const sampleStudents = [
     fatherContact: '+1234567897',
     motherName: 'Anita Sharma',
     motherContact: '+1234567898',
+    feesHistory: [
+      {
+        year: 2025,
+        term1: {
+          status: 'pending',
+        },
+        term2: {
+          status: 'pending',
+        },
+        other: {
+          status: 'not applicable',
+        }
+      }
+    ]
   },
   {
     fullName: 'David Williams',
@@ -54,6 +108,33 @@ const sampleStudents = [
     fatherContact: '+1234567800',
     motherName: 'Jennifer Williams',
     motherContact: '+1234567801',
+    feesHistory: [
+      {
+        year: 2025,
+        term1: {
+          status: 'paid',
+          amount: 30000,
+          receiptNo: 'REC004',
+          modeOfPayment: 'Online',
+          paidDate: new Date('2025-01-10'),
+        },
+        term2: {
+          status: 'paid',
+          amount: 30000,
+          receiptNo: 'REC005',
+          modeOfPayment: 'Online',
+          paidDate: new Date('2025-07-05'),
+        },
+        other: {
+          status: 'paid',
+          amount: 5000,
+          receiptNo: 'REC006',
+          modeOfPayment: 'Cash',
+          paidDate: new Date('2025-03-15'),
+          comment: 'Library fees'
+        }
+      }
+    ]
   },
   {
     fullName: 'Aisha Khan',
@@ -67,6 +148,24 @@ const sampleStudents = [
     fatherContact: '+1234567803',
     motherName: 'Fatima Khan',
     motherContact: '+1234567804',
+    feesHistory: [
+      {
+        year: 2025,
+        term1: {
+          status: 'paid',
+          amount: 22000,
+          receiptNo: 'REC007',
+          modeOfPayment: 'UPI',
+          paidDate: new Date('2025-01-25'),
+        },
+        term2: {
+          status: 'pending',
+        },
+        other: {
+          status: 'not applicable',
+        }
+      }
+    ]
   },
   {
     fullName: 'Rohit Patel',

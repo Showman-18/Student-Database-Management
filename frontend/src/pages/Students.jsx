@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
 import StudentModal from '../components/StudentModal';
 import CreateStudentModal from '../components/CreateStudentModal';
 import UpdateStudentModal from '../components/UpdateStudentModal';
-import { LogOut, Search, Users, Plus, BarChart3, Menu, X } from 'lucide-react';
+import { LogOut, Search, Users, Plus, BarChart3, Menu, X, Download, Upload } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -20,6 +21,7 @@ const Students = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -104,6 +106,93 @@ const Students = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  // Export students to Excel
+  const handleExport = async () => {
+    try {
+      const response = await axios.get('/students/export/excel', {
+        responseType: 'blob',
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `students_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to export students');
+    }
+  };
+
+  // Download Excel template
+  const handleDownloadTemplate = () => {
+    const template = [
+      {
+        'Full Name': '',
+        'GR No': '',
+        'PAN No': '',
+        'Phone Number': '',
+        'Caste': '',
+        'Religion': '',
+        'Address': '',
+        'Father Name': '',
+        'Father Contact': '',
+        'Mother Name': '',
+        'Mother Contact': '',
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(template);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+    XLSX.writeFile(workbook, 'student_import_template.xlsx');
+  };
+
+  // Import students from Excel
+  const handleImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        // Map Excel data to student format
+        const studentsData = jsonData.map((row) => ({
+          fullName: row['Full Name'] || '',
+          grNo: row['GR No'] || '',
+          panNo: row['PAN No'] || '',
+          phoneNumber: row['Phone Number'] || '',
+          caste: row['Caste'] || '',
+          religion: row['Religion'] || '',
+          address: row['Address'] || '',
+          fatherName: row['Father Name'] || '',
+          fatherContact: row['Father Contact'] || '',
+          motherName: row['Mother Name'] || '',
+          motherContact: row['Mother Contact'] || '',
+        }));
+
+        // Send to backend
+        const response = await axios.post('/students/import/excel', { data: studentsData });
+        
+        alert(response.data.message);
+        fetchStudents();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to import students');
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+    event.target.value = ''; // Reset file input
   };
 
   return (
@@ -205,6 +294,35 @@ const Students = () => {
               className="px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition"
             >
               {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+            </button>
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2 px-4 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition font-medium"
+              title="Download Excel template for import"
+            >
+              <Download size={16} />
+              Template
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium"
+            >
+              <Download size={16} />
+              Export
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImport}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-medium"
+            >
+              <Upload size={16} />
+              Import
             </button>
           </div>
 

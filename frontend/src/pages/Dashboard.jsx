@@ -14,6 +14,23 @@ const Dashboard = () => {
     fetchStudents();
   }, []);
 
+  // Refresh data when window gains focus (when navigating back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStudents();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', fetchStudents);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', fetchStudents);
+    };
+  }, []);
+
   const fetchStudents = async () => {
     try {
       setLoading(true);

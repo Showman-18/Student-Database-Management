@@ -1,6 +1,7 @@
 const express = require('express');
 const Student = require('../models/Student');
 const { verifyToken } = require('../middleware/auth');
+const XLSX = require('xlsx');
 
 const router = express.Router();
 
@@ -189,6 +190,124 @@ router.post('/:id/fees/year', verifyToken, async (req, res) => {
     res.json({ message: 'Year added successfully', student });
   } catch (error) {
     res.status(500).json({ message: 'Error adding year', error: error.message });
+  }
+});
+
+// Export students to Excel (Protected)
+router.get('/export/excel', verifyToken, async (req, res) => {
+  try {
+    const students = await Student.find().lean();
+
+    // Prepare data for Excel
+    const excelData = students.map(student => {
+      const row = {
+        'Full Name': student.fullName,
+        'GR No': student.grNo,
+        'PAN No': student.panNo,
+        'Phone Number': student.phoneNumber,
+        'Caste': student.caste || '',
+        'Religion': student.religion || '',
+        'Address': student.address || '',
+        'Father Name': student.fatherName || '',
+        'Father Contact': student.fatherContact || '',
+        'Mother Name': student.motherName || '',
+        'Mother Contact': student.motherContact || '',
+      };
+
+      // Add fees history data
+      if (student.feesHistory && student.feesHistory.length > 0) {
+        student.feesHistory.forEach((yearHistory, index) => {
+          row[`Year ${index + 1}`] = yearHistory.year;
+          row[`Year ${index + 1} - Term 1 Status`] = yearHistory.term1?.status || 'pending';
+          row[`Year ${index + 1} - Term 1 Amount`] = yearHistory.term1?.amount || '';
+          row[`Year ${index + 1} - Term 2 Status`] = yearHistory.term2?.status || 'pending';
+          row[`Year ${index + 1} - Term 2 Amount`] = yearHistory.term2?.amount || '';
+        });
+      }
+
+      return row;
+    });
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+    // Generate buffer
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set headers for file download
+    res.setHeader('Content-Disposition', 'attachment; filename=students.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ message: 'Error exporting students', error: error.message });
+  }
+});
+
+// Import students from Excel (Protected)
+router.post('/import/excel', verifyToken, async (req, res) => {
+  try {
+    if (!req.body.data) {
+      return res.status(400).json({ message: 'No data provided' });
+    }
+
+    const studentsData = req.body.data;
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    for (const studentData of studentsData) {
+      try {
+        // Check if student already exists
+        const existingGrNo = await Student.findOne({ grNo: studentData.grNo });
+        const existingPanNo = await Student.findOne({ panNo: studentData.panNo });
+
+        if (existingGrNo || existingPanNo) {
+          results.failed++;
+          results.errors.push({
+            grNo: studentData.grNo,
+            error: existingGrNo ? 'GR No already exists' : 'PAN No already exists',
+          });
+          continue;
+        }
+
+        // Create new student
+        const student = new Student({
+          fullName: studentData.fullName,
+          grNo: studentData.grNo,
+          panNo: studentData.panNo,
+          phoneNumber: studentData.phoneNumber,
+          caste: studentData.caste || '',
+          religion: studentData.religion || '',
+          address: studentData.address || '',
+          fatherName: studentData.fatherName || '',
+          fatherContact: studentData.fatherContact || '',
+          motherName: studentData.motherName || '',
+          motherContact: studentData.motherContact || '',
+        });
+
+        await student.save();
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          grNo: studentData.grNo,
+          error: error.message,
+        });
+      }
+    }
+
+    res.json({
+      message: `Import completed. ${results.success} students added, ${results.failed} failed.`,
+      results,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error importing students', error: error.message });
   }
 });
 
