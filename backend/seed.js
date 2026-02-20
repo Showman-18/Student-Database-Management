@@ -1,6 +1,12 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Student = require('./models/Student');
+const Admin = require('./models/Admin');
+
+const sampleAdmin = {
+  username: 'admin',
+  password: 'admin123',
+};
 
 const sampleStudents = [
   {
@@ -188,8 +194,15 @@ async function seedDatabase() {
     console.log('Connected to MongoDB');
 
     // Clear existing data
+    await Admin.deleteMany({});
+    console.log('Cleared existing admin records');
+
     await Student.deleteMany({});
     console.log('Cleared existing student records');
+
+    // Insert default admin
+    const adminResult = await Admin.create(sampleAdmin);
+    console.log(`✓ Added default admin (Username: ${adminResult.username})`);
 
     // Insert sample data
     const result = await Student.insertMany(sampleStudents);
