@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
-import StudentModal from '../components/StudentModal';
-import CreateStudentModal from '../components/CreateStudentModal';
-import UpdateStudentModal from '../components/UpdateStudentModal';
 import { LogOut, Search, Users, Plus, BarChart3, Menu, X, Download, Upload } from 'lucide-react';
-import * as XLSX from 'xlsx';
+
+const StudentModal = lazy(() => import('../components/StudentModal'));
+const CreateStudentModal = lazy(() => import('../components/CreateStudentModal'));
+const UpdateStudentModal = lazy(() => import('../components/UpdateStudentModal'));
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -20,13 +20,29 @@ const Students = () => {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [dbHealth, setDbHealth] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
+  const loadXlsx = async () => {
+    const module = await import('xlsx');
+    return module;
+  };
+
   useEffect(() => {
     fetchStudents();
+    fetchDbHealth();
   }, []);
+
+  const fetchDbHealth = async () => {
+    try {
+      const response = await axios.get('/system/db/status');
+      setDbHealth(response.data);
+    } catch {
+      // Non-blocking: students data view should still load if status endpoint fails.
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -130,7 +146,9 @@ const Students = () => {
   };
 
   // Download Excel template
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await loadXlsx();
+
     const template = [
       {
         'Full Name': '',
@@ -161,6 +179,7 @@ const Students = () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
+        const XLSX = await loadXlsx();
         setError('');
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -307,6 +326,17 @@ const Students = () => {
             </div>
           )}
 
+          {dbHealth && !dbHealth.healthy && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+              <p className="font-semibold">Database Recovery Mode Active</p>
+              <p className="mt-1">
+                {dbHealth.forcedRecoveryMode
+                  ? 'Forced recovery mode is enabled for testing. Disable FORCE_RECOVERY_MODE and restart backend.'
+                  : 'Write operations are blocked until DB health checks are OK.'}
+              </p>
+            </div>
+          )}
+
           {/* Search Bar */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
@@ -442,27 +472,29 @@ const Students = () => {
       </main>
 
       {/* Modals */}
-      <StudentModal
-        student={selectedStudent}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onEdit={handleEditStudent}
-        onDelete={handleDeleteStudent}
-        onSuccess={fetchStudents}
-      />
+      <Suspense fallback={null}>
+        <StudentModal
+          student={selectedStudent}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onEdit={handleEditStudent}
+          onDelete={handleDeleteStudent}
+          onSuccess={fetchStudents}
+        />
 
-      <CreateStudentModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={fetchStudents}
-      />
+        <CreateStudentModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={fetchStudents}
+        />
 
-      <UpdateStudentModal
-        student={editingStudent}
-        isOpen={isUpdateModalOpen}
-        onClose={() => setIsUpdateModalOpen(false)}
-        onSuccess={fetchStudents}
-      />
+        <UpdateStudentModal
+          student={editingStudent}
+          isOpen={isUpdateModalOpen}
+          onClose={() => setIsUpdateModalOpen(false)}
+          onSuccess={fetchStudents}
+        />
+      </Suspense>
     </div>
   );
 };

@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const { initDatabase } = require('./db');
 const { createBackup, checkDatabaseHealth } = require('./services/backupService');
+const { enforceDbSafety } = require('./middleware/dbSafety');
 
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
@@ -59,6 +60,7 @@ initDatabase()
   .catch((err) => console.log('SQLite initialization error:', err));
 
 // Routes
+app.use('/api', enforceDbSafety);
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/system', systemRoutes);

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
-import { LogOut, Users, BarChart3, Menu, X, TrendingUp, AlertCircle, Database, ShieldCheck, RotateCcw, KeyRound, UserCog } from 'lucide-react';
+import { LogOut, Users, BarChart3, Menu, X, TrendingUp, AlertCircle, Database, ShieldCheck, RotateCcw, KeyRound, UserCog, Download, Trash2, Upload } from 'lucide-react';
 
 const Dashboard = () => {
   const [students, setStudents] = useState([]);
@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [systemError, setSystemError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
+  const [backupActionLoading, setBackupActionLoading] = useState(false);
   const [healthLoading, setHealthLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [dbHealth, setDbHealth] = useState(null);
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const backupImportInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -130,9 +132,16 @@ const Dashboard = () => {
       const response = await axios.get('/system/backups');
       const backupItems = response.data?.backups || [];
       setBackups(backupItems);
-      if (backupItems.length > 0 && !selectedBackup) {
-        setSelectedBackup(backupItems[0].fileName);
+
+      if (backupItems.length === 0) {
+        setSelectedBackup('');
+      } else {
+        const stillExists = backupItems.some((item) => item.fileName === selectedBackup);
+        if (!stillExists) {
+          setSelectedBackup(backupItems[0].fileName);
+        }
       }
+
       setSystemError('');
     } catch (err) {
       setSystemError(err.response?.data?.message || 'Failed to load backups');
@@ -153,21 +162,21 @@ const Dashboard = () => {
     }
   };
 
-  const handleRestoreBackup = async () => {
-    if (!selectedBackup) {
+  const handleRestoreBackup = async (targetFile = selectedBackup) => {
+    if (!targetFile) {
       setSystemError('Select a backup to restore');
       return;
     }
 
     const confirmed = window.confirm(
-      `Restore backup ${selectedBackup}? This will overwrite current database data.`
+      `Restore backup ${targetFile}? This will overwrite current database data.`
     );
     if (!confirmed) return;
 
     try {
       setRestoreLoading(true);
       setSystemError('');
-      const response = await axios.post('/system/backups/restore', { fileName: selectedBackup });
+      const response = await axios.post('/system/backups/restore', { fileName: targetFile });
       await fetchStudents();
       await fetchDbHealth();
       alert(response.data?.message || 'Backup restored successfully');
@@ -175,6 +184,93 @@ const Dashboard = () => {
       setSystemError(err.response?.data?.message || 'Failed to restore backup');
     } finally {
       setRestoreLoading(false);
+    }
+  };
+
+  const handleDownloadBackup = async (targetFile = selectedBackup) => {
+    if (!targetFile) {
+      setSystemError('Select a backup to download');
+      return;
+    }
+
+    try {
+      setBackupActionLoading(true);
+      setSystemError('');
+      const response = await axios.get(`/system/backups/download/${encodeURIComponent(targetFile)}`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', targetFile);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to download backup');
+    } finally {
+      setBackupActionLoading(false);
+    }
+  };
+
+  const handleDeleteBackup = async (targetFile = selectedBackup) => {
+    if (!targetFile) {
+      setSystemError('Select a backup to delete');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete backup ${targetFile}? This cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setBackupActionLoading(true);
+      setSystemError('');
+      await axios.delete(`/system/backups/${encodeURIComponent(targetFile)}`);
+      await fetchBackups();
+      alert('Backup deleted successfully');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to delete backup');
+    } finally {
+      setBackupActionLoading(false);
+    }
+  };
+
+  const handleImportBackup = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    const lowerName = String(file.name).toLowerCase();
+    if (!lowerName.endsWith('.db')) {
+      setSystemError('Only .db backup files are allowed');
+      return;
+    }
+
+    try {
+      setBackupActionLoading(true);
+      setSystemError('');
+
+      const formData = new FormData();
+      formData.append('backupFile', file);
+
+      const response = await axios.post('/system/backups/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      await fetchBackups();
+      if (response.data?.backup?.fileName) {
+        setSelectedBackup(response.data.backup.fileName);
+      }
+      alert(response.data?.message || 'Backup imported successfully');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to import backup file');
+    } finally {
+      setBackupActionLoading(false);
     }
   };
 
@@ -213,6 +309,29 @@ const Dashboard = () => {
       ['term1', 'term2', 'other'].some(term => yearHistory[term]?.status === 'paid')
     );
   }).length;
+
+  const formatBytes = (bytes) => {
+    if (!bytes && bytes !== 0) return '-';
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / 1024 ** index;
+    return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+  };
+
+  const formatDateTime = (isoDate) => {
+    if (!isoDate) return '-';
+    const date = new Date(isoDate);
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50/40 via-white to-green-50/30">
@@ -297,6 +416,20 @@ const Dashboard = () => {
             <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl text-orange-700 flex gap-3">
               <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
               <div>{systemError}</div>
+            </div>
+          )}
+
+          {dbHealth && !dbHealth.healthy && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex gap-3">
+              <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Database Recovery Mode Active</p>
+                <p className="text-sm mt-1">
+                  {dbHealth.forcedRecoveryMode
+                    ? 'Forced recovery mode is enabled for testing (FORCE_RECOVERY_MODE=true). Disable it and restart backend.'
+                    : 'Write operations are blocked for safety. Restore a healthy backup, then run health check again.'}
+                </p>
+              </div>
             </div>
           )}
 
@@ -524,34 +657,103 @@ const Dashboard = () => {
                       <Database size={18} className="text-gray-500" />
                       <span className="text-sm font-medium">Available Backups</span>
                     </div>
-                    <select
-                      value={selectedBackup}
-                      onChange={(e) => setSelectedBackup(e.target.value)}
-                      className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
-                    >
-                      {backups.length === 0 ? (
-                        <option value="">No backups found</option>
-                      ) : (
-                        backups.map((backup) => (
-                          <option key={backup.fileName} value={backup.fileName}>
-                            {backup.fileName}
-                          </option>
-                        ))
-                      )}
-                    </select>
                     <button
                       onClick={fetchBackups}
                       className="px-4 py-2.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-sm font-medium"
                     >
                       <span className="inline-flex items-center gap-1"><RotateCcw size={14} /> Refresh</span>
                     </button>
+                    <input
+                      ref={backupImportInputRef}
+                      type="file"
+                      accept=".db"
+                      onChange={handleImportBackup}
+                      className="hidden"
+                    />
                     <button
-                      onClick={handleRestoreBackup}
-                      disabled={restoreLoading || backups.length === 0}
-                      className="px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-60"
+                      onClick={() => backupImportInputRef.current?.click()}
+                      disabled={backupActionLoading}
+                      className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-60 inline-flex items-center gap-1"
                     >
-                      {restoreLoading ? 'Restoring...' : 'Restore Backup'}
+                      <Upload size={14} />
+                      Import
                     </button>
+                  </div>
+
+                  <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                    <table className="w-full min-w-[700px]">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Backup File</th>
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Size</th>
+                          <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Modified</th>
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {backups.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-6 text-sm text-gray-500 text-center">
+                              No backup files available
+                            </td>
+                          </tr>
+                        ) : (
+                          backups.map((backup) => {
+                            const isSelected = selectedBackup === backup.fileName;
+
+                            return (
+                              <tr
+                                key={backup.fileName}
+                                onClick={() => setSelectedBackup(backup.fileName)}
+                                className={`cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                                  isSelected ? 'bg-emerald-50/70' : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                <td className="px-4 py-3 text-sm text-gray-700 font-medium">{backup.fileName}</td>
+                                <td className="px-4 py-3 text-sm text-gray-700 text-right">{formatBytes(backup.sizeBytes)}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{formatDateTime(backup.modifiedAt)}</td>
+                                <td className="px-4 py-3 text-right">
+                                  <div className="inline-flex items-center gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRestoreBackup(backup.fileName);
+                                      }}
+                                      disabled={restoreLoading || backupActionLoading}
+                                      className="px-2.5 py-1.5 rounded-md bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium disabled:opacity-60"
+                                    >
+                                      Restore
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDownloadBackup(backup.fileName);
+                                      }}
+                                      disabled={restoreLoading || backupActionLoading}
+                                      className="px-2.5 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium disabled:opacity-60 inline-flex items-center gap-1"
+                                    >
+                                      <Download size={12} />
+                                      Download
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteBackup(backup.fileName);
+                                      }}
+                                      disabled={restoreLoading || backupActionLoading}
+                                      className="px-2.5 py-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-medium disabled:opacity-60 inline-flex items-center gap-1"
+                                    >
+                                      <Trash2 size={12} />
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

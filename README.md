@@ -1,166 +1,190 @@
 # Student Management System
 
-A complete full-stack (SQLite, Express, React, Node.js) application for managing student information with a modern UI and secure authentication.
+A desktop-first student management app built with Electron, React, Express, and SQLite.
 
 ## Features
 
-- **Secure Authentication**: JWT-based login system with protected routes
-- **First-Run Account Setup**: Create admin username/password on first launch
-- **Student Dashboard**: View all students in a responsive grid layout
-- **Search Functionality**: Filter students by full name or GR number
-- **Detailed View**: Click on any student to view complete information in a modal
-- **Modern UI**: Built with Tailwind CSS and Glassmorphism effects
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Desktop App Support**: Run the full app as a local Electron desktop app
-- **Data Safety**: Automated SQLite backups, integrity checks, and one-click restore tools
+- First-run admin setup (no hardcoded default login required)
+- Secure JWT authentication and protected routes
+- Student CRUD, search, sorting, and detailed modal view
+- Excel import/export for student records
+- Local SQLite database (offline runtime)
+- Backup center with create, import, download, restore, and delete
+- Database quick check and integrity check
+- Recovery mode write-lock when database health is not safe
+- Electron desktop mode with local backend auto-start
 
 ## Tech Stack
 
 ### Frontend
-- **React 19** with Vite
-- **Tailwind CSS** for styling
-- **React Router DOM** for navigation
-- **Axios** for API calls
-- **Lucide React** for icons
 
-### Desktop
-- **Electron** wrapper for full local desktop usage
+- React 19 + Vite
+- React Router
+- Tailwind CSS
+- Axios
+- Lucide React
 
 ### Backend
-- **Node.js** with Express
-- **SQLite3** local database
-- **JWT** for authentication
-- **CORS** for cross-origin requests
-- **BCryptjs** for password hashing
 
-## Project Setup
+- Node.js + Express
+- SQLite3
+- bcryptjs
+- JWT
+- multer (backup file upload)
+- xlsx
 
-### Prerequisites
-- Node.js (v16+)
-- npm or yarn
+### Desktop
 
-### Backend Setup
+- Electron
 
-1. Navigate to the backend directory:
-```bash
-cd backend
-```
+## Running The App
 
-2. Install dependencies:
+From project root:
+
+1. Install all required dependencies:
+
 ```bash
 npm install
-```
-
-3. Create a `.env` file based on `.env.example`:
-```bash
-JWT_SECRET=your_jwt_secret_key_change_this_in_production
-PORT=5000
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-```
-
-4. Seed the database with sample students (optional):
-```bash
-node seed.js
-```
-
-5. Start the backend server:
-```bash
-npm run dev
-```
-
-The backend will be running on `http://localhost:5000`
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
-
-The frontend will be accessible at `http://localhost:5173`
-
-### Electron Desktop Setup
-
-1. Install root dependencies:
-```bash
-npm install
-```
-
-2. Ensure backend and frontend dependencies are installed:
-```bash
 npm --prefix backend install
 npm --prefix frontend install
 ```
 
-3. Seed local SQLite data (optional):
-```bash
-npm run seed
-```
+2. Start desktop app for development (backend + frontend + electron):
 
-4. Run Electron in development mode (starts backend + frontend + desktop window):
 ```bash
 npm run desktop:dev
 ```
 
-5. Run Electron in production-style mode (uses built frontend files):
+3. Start desktop app in production-style mode:
+
 ```bash
 npm run desktop
 ```
 
+4. Seed sample data (optional):
+
+```bash
+npm run seed
+```
+
+## Script Reference
+
+### Root scripts (package.json)
+
+- `npm run dev:backend` → runs backend watch mode
+- `npm run dev:frontend` → runs Vite dev server
+- `npm run dev:electron` → waits for ports then starts Electron in dev mode
+- `npm run desktop:dev` → runs backend + frontend + Electron together
+- `npm run build:frontend` → builds frontend only
+- `npm run desktop` → builds frontend, then starts Electron
+- `npm run seed` → runs backend seed script
+
+### Backend scripts (backend/package.json)
+
+- `npm run start` → run backend once
+- `npm run dev` → run backend with watch mode
+- `npm run seed` → seed SQLite database
+
+### Frontend scripts (frontend/package.json)
+
+- `npm run dev` → start Vite dev server
+- `npm run build` → build frontend assets
+- `npm run lint` → run ESLint
+- `npm run preview` → preview built frontend
+
+## Environment Variables
+
+Use backend/.env (copy from backend/.env.example):
+
+```bash
+JWT_SECRET=your_jwt_secret_key_change_this_in_production
+PORT=3000
+
+# Optional safety settings
+# SQLITE_DB_PATH=./data/student_management.db
+# SQLITE_BACKUP_DIR=./data/backups
+# BACKUP_RETENTION_COUNT=30
+# BACKUP_INTERVAL_MINUTES=1440
+# DB_HEALTHCHECK_INTERVAL_MINUTES=360
+# FORCE_RECOVERY_MODE=false
+```
+
+Notes:
+
+- In Electron mode, DB and backups are redirected to Electron userData path.
+- `FORCE_RECOVERY_MODE=true` is only for testing write-lock behavior.
+
+## First-Run Authentication Flow
+
+1. On first launch (no admin user in DB), Login page switches to setup mode.
+2. User creates admin username/password.
+3. That account is used for all future logins.
+4. Username/password can be changed later from Dashboard → Account Security.
+
 ## API Endpoints
 
-### Authentication
-- `GET /api/auth/status` - Check whether first-time setup is required
-- `POST /api/auth/setup` - Create first admin account (one-time)
-- `POST /api/auth/login` - Login with credentials
-- `POST /api/auth/init-admin` - Initialize admin user (run once)
-- `POST /api/auth/update-credentials` - Change username/password (requires login)
+### Auth
 
-### Students (Protected - Requires JWT)
-- `GET /api/students` - Fetch all students
-- `GET /api/students/:id` - Fetch specific student
-- `POST /api/students` - Create new student
-- `PUT /api/students/:id` - Update student
-- `DELETE /api/students/:id` - Delete student
+- `GET /api/auth/status` → check if setup is required
+- `POST /api/auth/setup` → create first admin account
+- `POST /api/auth/login` → login
+- `POST /api/auth/update-credentials` → change username/password (protected)
 
-### System Safety (Protected - Requires JWT)
-- `GET /api/system/db/status` - Run database quick/integrity checks
-- `GET /api/system/backups` - List available backups
-- `POST /api/system/backups` - Create a new backup now
-- `POST /api/system/backups/restore` - Restore from selected backup
+### Students (protected)
 
-## Default Admin Credentials
+- `GET /api/students`
+- `GET /api/students/:id`
+- `POST /api/students`
+- `PUT /api/students/:id`
+- `DELETE /api/students/:id`
+- `PUT /api/students/:id/fees/:year/:term`
+- `POST /api/students/:id/fees/year`
+- `GET /api/students/export/excel`
+- `POST /api/students/import/excel`
 
+### System Safety (protected)
+
+- `GET /api/system/db/status`
+- `GET /api/system/backups`
+- `POST /api/system/backups`
+- `GET /api/system/backups/download/:fileName`
+- `POST /api/system/backups/import` (multipart field: `backupFile`)
+- `DELETE /api/system/backups/:fileName`
+- `POST /api/system/backups/restore`
+
+## Backup & Recovery
+
+- SQLite runs with durability pragmas (WAL, synchronous, busy timeout, etc.)
+- Automated backup scheduling supported
+- Manual backup/restore/import/download/delete from Dashboard
+- Backup filename format:
+
+```text
+student_management_backup_Day_Date_Month_Year_HH-MM-SS_AMPM.db
 ```
-Username: admin
-Password: admin123
-```
 
-**Important**: Change these credentials in production!
+- If DB health is not OK, app enters recovery mode:
+    - Write APIs are blocked for safety
+    - Backup/recovery routes remain allowed
+    - Dashboard/Students show a red warning banner
 
-## Project Structure
+## Project Structure (Current)
 
-```
+```text
 Student Database Management/
 ├── backend/
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── dbSafety.js
 │   ├── routes/
 │   │   ├── auth.js
-│   │   └── students.js
-│   ├── middleware/
-│   │   └── auth.js
+│   │   ├── students.js
+│   │   └── system.js
+│   ├── services/
+│   │   └── backupService.js
 │   ├── data/
-│   │   └── student_management.db
+│   │   ├── student_management.db
+│   │   └── backups/
 │   ├── .env
 │   ├── .env.example
 │   ├── db.js
@@ -169,92 +193,23 @@ Student Database Management/
 │   └── package.json
 ├── electron/
 │   └── main.cjs
-├── package.json
-└── frontend/
-    ├── src/
-    │   ├── api/
-    │   │   └── axios.js
-    │   ├── components/
-    │   │   ├── ProtectedRoute.jsx
-    │   │   └── StudentModal.jsx
-    │   ├── pages/
-    │   │   ├── Login.jsx
-    │   │   └── Dashboard.jsx
-    │   ├── App.jsx
-    │   ├── main.jsx
-    │   ├── index.css
-    │   └── App.css
-    ├── index.html
-    ├── package.json
-    ├── tailwind.config.js
-    ├── postcss.config.js
-    └── vite.config.js
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   └── vite.config.js
+└── package.json
 ```
 
-## Usage
+## Offline Behavior
 
-1. **Login**: Navigate to the login page and enter admin credentials
-2. **View Students**: After login, you'll see the student dashboard with all students
-3. **Search**: Use the search bar to filter students by name or GR number
-4. **View Details**: Click on any student card to view their complete information
-
-## Features Breakdown
-
-### Login Page
-- Minimalist Windows startup-inspired design
-- Glassmorphism effect for the login card
-- Smooth animations and transitions
-- Form validation and error handling
-
-### Student Dashboard
-- Grid layout that's responsive (1 column on mobile, 2 on tablet, 3 on desktop)
-- Search functionality with real-time filtering
-- Student cards showing key information
-- Hover effects and smooth transitions
-
-### Student Detail Modal
-- Centered modal covering 80% of the screen
-- Complete student information display
-- Organized information in sections
-- Parent details in separate colored cards
-
-## Security Features
-
-- JWT token-based authentication
-- Protected API endpoints
-- Token expiration (24 hours)
-- Automatic logout on token expiration
-- Password hashing with bcryptjs
-
-## Backup & Recovery
-
-- SQLite runs in WAL mode with durable sync settings to reduce corruption risk.
-- Backups are created automatically on interval (`BACKUP_INTERVAL_MINUTES`).
-- Old backups are pruned using retention (`BACKUP_RETENTION_COUNT`).
-- Dashboard provides manual backup, health-check, and restore controls.
-- For desktop mode, database and backups are stored in Electron user data directory.
-
-## Error Handling
-
-- Comprehensive error messages
-- Validation at both frontend and backend
-- Unique constraint handling for GR No and PAN No
-- Graceful error display to users
-
-## Future Enhancements
-
-- Student creation and editing functionality
-- Admin panel for user management
-- Email notifications
-- Export student data to PDF/Excel
-- Advanced filtering and sorting options
-- Student attendance tracking
-- Grade management system
+- Runtime usage is offline-capable (local backend + local DB).
+- Internet is needed for dependency installation, updates, and installer downloads.
 
 ## License
 
 ISC
-
-## Support
-
-For issues or questions, please check the documentation or create an issue in the repository.
