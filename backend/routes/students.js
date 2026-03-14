@@ -1,14 +1,53 @@
 const express = require('express');
-const Student = require('../models/Student');
 const { verifyToken } = require('../middleware/auth');
 const XLSX = require('xlsx');
+const { all, get, run } = require('../db');
 
 const router = express.Router();
+
+const safeJsonParse = (value, fallback) => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
+const mapStudentRow = (row) => ({
+  _id: String(row.id),
+  fullName: row.full_name,
+  grNo: row.gr_no,
+  panNo: row.pan_no,
+  phoneNumber: row.phone_number,
+  caste: row.caste || '',
+  religion: row.religion || '',
+  address: row.address || '',
+  fatherName: row.father_name || '',
+  fatherContact: row.father_contact || '',
+  motherName: row.mother_name || '',
+  motherContact: row.mother_contact || '',
+  feesHistory: safeJsonParse(row.fees_history, []),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const getDefaultFeesHistory = () => {
+  const currentYear = new Date().getFullYear();
+  return [
+    {
+      year: currentYear,
+      term1: { status: 'pending' },
+      term2: { status: 'pending' },
+      other: { status: 'pending' },
+    },
+  ];
+};
 
 // Get all students (Protected)
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const students = await Student.find().sort({ createdAt: -1 });
+    const rows = await all('SELECT * FROM students ORDER BY datetime(created_at) DESC');
+    const students = rows.map(mapStudentRow);
     res.json(students);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching students', error: error.message });
@@ -18,10 +57,17 @@ router.get('/', verifyToken, async (req, res) => {
 // Get specific student by ID (Protected)
 router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
-    if (!student) {
+    const studentId = Number(req.params.id);
+    if (Number.isNaN(studentId)) {
+      return res.status(400).json({ message: 'Invalid student ID' });
+    }
+
+    const row = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    if (!row) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    const student = mapStudentRow(row);
     res.json(student);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching student', error: error.message });
@@ -51,8 +97,8 @@ router.post('/', verifyToken, async (req, res) => {
     }
 
     // Check for duplicates
-    const existingGrNo = await Student.findOne({ grNo });
-    const existingPanNo = await Student.findOne({ panNo });
+    const existingGrNo = await get('SELECT id FROM students WHERE gr_no = ?', [grNo]);
+    const existingPanNo = await get('SELECT id FROM students WHERE pan_no = ?', [panNo]);
 
     if (existingGrNo) {
       return res.status(400).json({ message: 'GR No already exists' });
@@ -62,21 +108,30 @@ router.post('/', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'PAN No already exists' });
     }
 
-    const student = new Student({
-      fullName,
-      grNo,
-      panNo,
-      phoneNumber,
-      caste,
-      religion,
-      address,
-      fatherName,
-      fatherContact,
-      motherName,
-      motherContact,
-    });
+    const inserted = await run(
+      `INSERT INTO students (
+        full_name, gr_no, pan_no, phone_number, caste, religion, address,
+        father_name, father_contact, mother_name, mother_contact, fees_history,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [
+        String(fullName).trim(),
+        String(grNo).trim(),
+        String(panNo).trim(),
+        String(phoneNumber).trim(),
+        caste || '',
+        religion || '',
+        address || '',
+        fatherName || '',
+        fatherContact || '',
+        motherName || '',
+        motherContact || '',
+        JSON.stringify(getDefaultFeesHistory()),
+      ]
+    );
 
-    await student.save();
+    const createdRow = await get('SELECT * FROM students WHERE id = ?', [inserted.lastID]);
+    const student = mapStudentRow(createdRow);
     res.status(201).json({ message: 'Student created successfully', student });
   } catch (error) {
     res.status(500).json({ message: 'Error creating student', error: error.message });
@@ -86,14 +141,81 @@ router.post('/', verifyToken, async (req, res) => {
 // Update student (Protected)
 router.put('/:id', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const studentId = Number(req.params.id);
+    if (Number.isNaN(studentId)) {
+      return res.status(400).json({ message: 'Invalid student ID' });
+    }
 
-    if (!student) {
+    const existing = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    if (!existing) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    const fieldMap = {
+      fullName: 'full_name',
+      grNo: 'gr_no',
+      panNo: 'pan_no',
+      phoneNumber: 'phone_number',
+      caste: 'caste',
+      religion: 'religion',
+      address: 'address',
+      fatherName: 'father_name',
+      fatherContact: 'father_contact',
+      motherName: 'mother_name',
+      motherContact: 'mother_contact',
+      feesHistory: 'fees_history',
+    };
+
+    const updates = [];
+    const values = [];
+
+    for (const [key, column] of Object.entries(fieldMap)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        let value = req.body[key];
+        if (key === 'feesHistory') {
+          value = JSON.stringify(Array.isArray(value) ? value : []);
+        } else if (value === null || value === undefined) {
+          value = '';
+        } else {
+          value = String(value).trim();
+        }
+
+        updates.push(`${column} = ?`);
+        values.push(value);
+      }
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No valid fields provided for update' });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'grNo')) {
+      const duplicateGr = await get('SELECT id FROM students WHERE gr_no = ? AND id != ?', [
+        String(req.body.grNo).trim(),
+        studentId,
+      ]);
+      if (duplicateGr) {
+        return res.status(400).json({ message: 'GR No already exists' });
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'panNo')) {
+      const duplicatePan = await get('SELECT id FROM students WHERE pan_no = ? AND id != ?', [
+        String(req.body.panNo).trim(),
+        studentId,
+      ]);
+      if (duplicatePan) {
+        return res.status(400).json({ message: 'PAN No already exists' });
+      }
+    }
+
+    await run(
+      `UPDATE students SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [...values, studentId]
+    );
+
+    const updatedRow = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    const student = mapStudentRow(updatedRow);
 
     res.json({ message: 'Student updated successfully', student });
   } catch (error) {
@@ -104,9 +226,13 @@ router.put('/:id', verifyToken, async (req, res) => {
 // Delete student (Protected)
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const student = await Student.findByIdAndDelete(req.params.id);
+    const studentId = Number(req.params.id);
+    if (Number.isNaN(studentId)) {
+      return res.status(400).json({ message: 'Invalid student ID' });
+    }
 
-    if (!student) {
+    const deleted = await run('DELETE FROM students WHERE id = ?', [studentId]);
+    if (deleted.changes === 0) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
@@ -121,10 +247,21 @@ router.put('/:id/fees/:year/:term', verifyToken, async (req, res) => {
   try {
     const { id, year, term } = req.params;
     const { status, receiptNo, modeOfPayment, amount, paidDate, comment } = req.body;
+    const studentId = Number(id);
 
-    const student = await Student.findById(id);
-    if (!student) {
+    if (Number.isNaN(studentId)) {
+      return res.status(400).json({ message: 'Invalid student ID' });
+    }
+
+    const row = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    if (!row) {
       return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const student = mapStudentRow(row);
+
+    if (!['term1', 'term2', 'other'].includes(term)) {
+      return res.status(400).json({ message: 'Invalid fees term' });
     }
 
     // Find or create fees history for the year
@@ -149,8 +286,14 @@ router.put('/:id/fees/:year/:term', verifyToken, async (req, res) => {
       if (comment) feesEntry[term].comment = comment;
     }
 
-    await student.save();
-    res.json({ message: 'Fees updated successfully', student });
+    await run(
+      'UPDATE students SET fees_history = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [JSON.stringify(student.feesHistory), studentId]
+    );
+
+    const updatedRow = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    const updatedStudent = mapStudentRow(updatedRow);
+    res.json({ message: 'Fees updated successfully', student: updatedStudent });
   } catch (error) {
     res.status(500).json({ message: 'Error updating fees', error: error.message });
   }
@@ -161,16 +304,23 @@ router.post('/:id/fees/year', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { year } = req.body;
+    const studentId = Number(id);
+
+    if (Number.isNaN(studentId)) {
+      return res.status(400).json({ message: 'Invalid student ID' });
+    }
 
     // Validate year
     if (!year || isNaN(year) || year < 1900 || year > 2100) {
       return res.status(400).json({ message: 'Invalid year provided' });
     }
 
-    const student = await Student.findById(id);
-    if (!student) {
+    const row = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    if (!row) {
       return res.status(404).json({ message: 'Student not found' });
     }
+
+    const student = mapStudentRow(row);
 
     // Check if year already exists
     const yearExists = student.feesHistory.find((entry) => entry.year === parseInt(year));
@@ -186,8 +336,14 @@ router.post('/:id/fees/year', verifyToken, async (req, res) => {
       other: { status: 'pending' },
     });
 
-    await student.save();
-    res.json({ message: 'Year added successfully', student });
+    await run(
+      'UPDATE students SET fees_history = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [JSON.stringify(student.feesHistory), studentId]
+    );
+
+    const updatedRow = await get('SELECT * FROM students WHERE id = ?', [studentId]);
+    const updatedStudent = mapStudentRow(updatedRow);
+    res.json({ message: 'Year added successfully', student: updatedStudent });
   } catch (error) {
     res.status(500).json({ message: 'Error adding year', error: error.message });
   }
@@ -196,7 +352,8 @@ router.post('/:id/fees/year', verifyToken, async (req, res) => {
 // Export students to Excel (Protected)
 router.get('/export/excel', verifyToken, async (req, res) => {
   try {
-    const students = await Student.find().lean();
+    const rows = await all('SELECT * FROM students ORDER BY datetime(created_at) DESC');
+    const students = rows.map(mapStudentRow);
 
     // Prepare data for Excel
     const excelData = students.map(student => {
@@ -250,11 +407,43 @@ router.get('/export/excel', verifyToken, async (req, res) => {
 // Import students from Excel (Protected)
 router.post('/import/excel', verifyToken, async (req, res) => {
   try {
-    if (!req.body.data) {
+    if (!Array.isArray(req.body.data)) {
       return res.status(400).json({ message: 'No data provided' });
     }
 
-    const studentsData = req.body.data;
+    const normalizeValue = (value) => {
+      if (value === null || value === undefined) return '';
+      return String(value).trim();
+    };
+
+    const studentsData = req.body.data
+      .map((studentData, index) => ({
+        rowNumber: index + 2, // Header is row 1 in Excel
+        fullName: normalizeValue(studentData.fullName),
+        grNo: normalizeValue(studentData.grNo),
+        panNo: normalizeValue(studentData.panNo),
+        phoneNumber: normalizeValue(studentData.phoneNumber),
+        caste: normalizeValue(studentData.caste),
+        religion: normalizeValue(studentData.religion),
+        address: normalizeValue(studentData.address),
+        fatherName: normalizeValue(studentData.fatherName),
+        fatherContact: normalizeValue(studentData.fatherContact),
+        motherName: normalizeValue(studentData.motherName),
+        motherContact: normalizeValue(studentData.motherContact),
+      }))
+      .filter((studentData) => {
+        // Skip entirely blank rows from Excel
+        const { rowNumber, ...studentFields } = studentData;
+        return Object.values(studentFields).some((value) => value !== '');
+      });
+
+    if (studentsData.length === 0) {
+      return res.status(400).json({
+        message:
+          'No valid rows found in Excel file. Ensure the sheet has student rows and headers like Full Name, GR No, PAN No, Phone Number.',
+      });
+    }
+
     const results = {
       success: 0,
       failed: 0,
@@ -263,13 +452,25 @@ router.post('/import/excel', verifyToken, async (req, res) => {
 
     for (const studentData of studentsData) {
       try {
+        // Validate required fields first
+        if (!studentData.fullName || !studentData.grNo || !studentData.panNo || !studentData.phoneNumber) {
+          results.failed++;
+          results.errors.push({
+            rowNumber: studentData.rowNumber,
+            grNo: studentData.grNo || 'N/A',
+            error: 'Missing required fields (Full Name, GR No, PAN No, Phone Number)',
+          });
+          continue;
+        }
+
         // Check if student already exists
-        const existingGrNo = await Student.findOne({ grNo: studentData.grNo });
-        const existingPanNo = await Student.findOne({ panNo: studentData.panNo });
+        const existingGrNo = await get('SELECT id FROM students WHERE gr_no = ?', [studentData.grNo]);
+        const existingPanNo = await get('SELECT id FROM students WHERE pan_no = ?', [studentData.panNo]);
 
         if (existingGrNo || existingPanNo) {
           results.failed++;
           results.errors.push({
+            rowNumber: studentData.rowNumber,
             grNo: studentData.grNo,
             error: existingGrNo ? 'GR No already exists' : 'PAN No already exists',
           });
@@ -277,25 +478,33 @@ router.post('/import/excel', verifyToken, async (req, res) => {
         }
 
         // Create new student
-        const student = new Student({
-          fullName: studentData.fullName,
-          grNo: studentData.grNo,
-          panNo: studentData.panNo,
-          phoneNumber: studentData.phoneNumber,
-          caste: studentData.caste || '',
-          religion: studentData.religion || '',
-          address: studentData.address || '',
-          fatherName: studentData.fatherName || '',
-          fatherContact: studentData.fatherContact || '',
-          motherName: studentData.motherName || '',
-          motherContact: studentData.motherContact || '',
-        });
+        await run(
+          `INSERT INTO students (
+            full_name, gr_no, pan_no, phone_number, caste, religion, address,
+            father_name, father_contact, mother_name, mother_contact, fees_history,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [
+            studentData.fullName,
+            studentData.grNo,
+            studentData.panNo,
+            studentData.phoneNumber,
+            studentData.caste || '',
+            studentData.religion || '',
+            studentData.address || '',
+            studentData.fatherName || '',
+            studentData.fatherContact || '',
+            studentData.motherName || '',
+            studentData.motherContact || '',
+            JSON.stringify(getDefaultFeesHistory()),
+          ]
+        );
 
-        await student.save();
         results.success++;
       } catch (error) {
         results.failed++;
         results.errors.push({
+          rowNumber: studentData.rowNumber,
           grNo: studentData.grNo,
           error: error.message,
         });

@@ -161,30 +161,68 @@ const Students = () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
+        setError('');
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          raw: false,
+          defval: '',
+          blankrows: false,
+        });
+
+        const normalizeValue = (value) => {
+          if (value === null || value === undefined) return '';
+          return String(value).trim();
+        };
+
+        const findValueByAliases = (row, aliases) => {
+          const normalizedAliases = aliases.map((alias) => alias.toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+          for (const [key, value] of Object.entries(row)) {
+            const normalizedKey = String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (normalizedAliases.includes(normalizedKey)) {
+              return value;
+            }
+          }
+
+          return '';
+        };
 
         // Map Excel data to student format
         const studentsData = jsonData.map((row) => ({
-          fullName: row['Full Name'] || '',
-          grNo: row['GR No'] || '',
-          panNo: row['PAN No'] || '',
-          phoneNumber: row['Phone Number'] || '',
-          caste: row['Caste'] || '',
-          religion: row['Religion'] || '',
-          address: row['Address'] || '',
-          fatherName: row['Father Name'] || '',
-          fatherContact: row['Father Contact'] || '',
-          motherName: row['Mother Name'] || '',
-          motherContact: row['Mother Contact'] || '',
+          fullName: normalizeValue(findValueByAliases(row, ['Full Name', 'FullName', 'Name', 'Student Name'])),
+          grNo: normalizeValue(findValueByAliases(row, ['GR No', 'GRNo', 'GR Number', 'GR'])),
+          panNo: normalizeValue(findValueByAliases(row, ['PAN No', 'PANNo', 'PAN Number', 'PAN'])),
+          phoneNumber: normalizeValue(findValueByAliases(row, ['Phone Number', 'Phone', 'Mobile Number', 'Mobile', 'Contact Number'])),
+          caste: normalizeValue(findValueByAliases(row, ['Caste'])),
+          religion: normalizeValue(findValueByAliases(row, ['Religion'])),
+          address: normalizeValue(findValueByAliases(row, ['Address'])),
+          fatherName: normalizeValue(findValueByAliases(row, ['Father Name', 'FatherName'])),
+          fatherContact: normalizeValue(findValueByAliases(row, ['Father Contact', 'FatherContact', 'Father Phone', 'Father Mobile'])),
+          motherName: normalizeValue(findValueByAliases(row, ['Mother Name', 'MotherName'])),
+          motherContact: normalizeValue(findValueByAliases(row, ['Mother Contact', 'MotherContact', 'Mother Phone', 'Mother Mobile'])),
         }));
+
+        if (studentsData.length === 0) {
+          setError('No rows found in selected Excel file');
+          return;
+        }
 
         // Send to backend
         const response = await axios.post('/students/import/excel', { data: studentsData });
-        
-        alert(response.data.message);
+
+        const failedRows = response.data?.results?.errors || [];
+        if (failedRows.length > 0) {
+          const previewErrors = failedRows
+            .slice(0, 5)
+            .map((item) => `Row ${item.rowNumber || '?'}: ${item.error}`)
+            .join('\n');
+          alert(`${response.data.message}\n\nSome rows failed:\n${previewErrors}`);
+        } else {
+          alert(response.data.message);
+        }
+
         fetchStudents();
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to import students');

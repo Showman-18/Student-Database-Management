@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
@@ -6,6 +6,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import './index.css';
 
 function App() {
+  const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
+
   return (
     <Router>
       <Routes>

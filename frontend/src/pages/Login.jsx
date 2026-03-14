@@ -1,14 +1,32 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
-import { Lock, User, LogIn, CheckCircle2, Zap, Shield } from 'lucide-react';
+import { Lock, User, LogIn, CheckCircle2, Zap, Shield, UserPlus } from 'lucide-react';
 
 const Login = () => {
+  const [authStatusLoading, setAuthStatusLoading] = useState(true);
+  const [setupRequired, setSetupRequired] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await axios.get('/auth/status');
+        setSetupRequired(Boolean(response.data?.setupRequired));
+      } catch {
+        setError('Unable to reach authentication service');
+      } finally {
+        setAuthStatusLoading(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,15 +34,45 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('/auth/login', { username, password });
+      let response;
+
+      if (setupRequired) {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        response = await axios.post('/auth/setup', { username, password });
+      } else {
+        response = await axios.post('/auth/login', { username, password });
+      }
+
       localStorage.setItem('token', response.data.token);
+      if (response.data?.admin?.username) {
+        localStorage.setItem('adminUsername', response.data.admin.username);
+      }
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(
+        err.response?.data?.message ||
+          (setupRequired ? 'Setup failed. Please try again.' : 'Login failed. Please try again.')
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  if (authStatusLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500 font-medium">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-6 relative overflow-hidden">
@@ -98,8 +146,14 @@ const Login = () => {
         <div className="bg-white rounded-3xl p-8 sm:p-10 border border-gray-200 shadow-soft">
           {/* Header */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-            <p className="text-gray-500 text-sm">Sign in with your admin credentials</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              {setupRequired ? 'Set Up Admin Account' : 'Welcome Back'}
+            </h2>
+            <p className="text-gray-500 text-sm">
+              {setupRequired
+                ? 'First launch detected. Create your secure admin credentials.'
+                : 'Sign in with your admin credentials'}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -115,9 +169,11 @@ const Login = () => {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="admin"
+                    placeholder={setupRequired ? 'Choose username' : 'Enter username'}
                     className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
                     disabled={loading}
+                    minLength={3}
+                    required
                   />
                 </div>
               </div>
@@ -138,10 +194,33 @@ const Login = () => {
                     placeholder="••••••••"
                     className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
                     disabled={loading}
+                    minLength={6}
+                    required
                   />
                 </div>
               </div>
             </div>
+
+            {setupRequired && (
+              <div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2.5">Confirm Password</label>
+                <div className="relative group">
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-4 text-gray-400 group-focus-within:text-emerald-500 transition" size={18} />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
+                      disabled={loading}
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -162,31 +241,23 @@ const Login = () => {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Signing in...</span>
+                  <span>{setupRequired ? 'Creating account...' : 'Signing in...'}</span>
                 </>
               ) : (
                 <>
-                  <LogIn size={18} />
-                  <span>Sign In</span>
+                  {setupRequired ? <UserPlus size={18} /> : <LogIn size={18} />}
+                  <span>{setupRequired ? 'Create Admin Account' : 'Sign In'}</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-8 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-            <p className="text-emerald-700 text-xs font-semibold mb-2">DEMO CREDENTIALS</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-gray-500 text-xs">Username</p>
-                <p className="text-gray-900 font-mono font-semibold text-sm">admin</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs">Password</p>
-                <p className="text-gray-900 font-mono font-semibold text-sm">admin123</p>
-              </div>
+          {setupRequired && (
+            <div className="mt-8 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+              <p className="text-emerald-700 text-xs font-semibold mb-1">FIRST-TIME SETUP</p>
+              <p className="text-gray-600 text-sm">You only do this once after installation. Later, use these credentials to sign in.</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

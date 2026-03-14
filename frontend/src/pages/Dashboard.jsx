@@ -1,17 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../api/axios';
-import { LogOut, Users, Plus, BarChart3, Menu, X, TrendingUp, AlertCircle } from 'lucide-react';
+import { LogOut, Users, BarChart3, Menu, X, TrendingUp, AlertCircle, Database, ShieldCheck, RotateCcw, KeyRound, UserCog } from 'lucide-react';
 
 const Dashboard = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [systemError, setSystemError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [dbHealth, setDbHealth] = useState(null);
+  const [backups, setBackups] = useState([]);
+  const [selectedBackup, setSelectedBackup] = useState('');
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false);
+  const [credentialsLoading, setCredentialsLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchStudents();
+    fetchDbHealth();
+    fetchBackups();
   }, []);
 
   // Refresh data when window gains focus (when navigating back)
@@ -46,7 +61,121 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('adminUsername');
     navigate('/login');
+  };
+
+  const handleUpdateCredentials = async (e) => {
+    e.preventDefault();
+    setSystemError('');
+
+    if (!currentPassword) {
+      setSystemError('Current password is required');
+      return;
+    }
+
+    if (!newUsername && !newPassword) {
+      setSystemError('Provide a new username or new password');
+      return;
+    }
+
+    if (newPassword && newPassword !== confirmNewPassword) {
+      setSystemError('New password and confirmation do not match');
+      return;
+    }
+
+    try {
+      setCredentialsLoading(true);
+
+      const payload = {
+        currentPassword,
+      };
+
+      if (newUsername) payload.newUsername = newUsername;
+      if (newPassword) payload.newPassword = newPassword;
+
+      const response = await axios.post('/auth/update-credentials', payload);
+      if (response.data?.admin?.username) {
+        localStorage.setItem('adminUsername', response.data.admin.username);
+      }
+
+      setCurrentPassword('');
+      setNewUsername('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setCredentialsModalOpen(false);
+      alert(response.data?.message || 'Credentials updated successfully');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to update credentials');
+    } finally {
+      setCredentialsLoading(false);
+    }
+  };
+
+  const fetchDbHealth = async () => {
+    try {
+      setHealthLoading(true);
+      const response = await axios.get('/system/db/status');
+      setDbHealth(response.data);
+      setSystemError('');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to fetch database health');
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  const fetchBackups = async () => {
+    try {
+      const response = await axios.get('/system/backups');
+      const backupItems = response.data?.backups || [];
+      setBackups(backupItems);
+      if (backupItems.length > 0 && !selectedBackup) {
+        setSelectedBackup(backupItems[0].fileName);
+      }
+      setSystemError('');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to load backups');
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    try {
+      setBackupLoading(true);
+      setSystemError('');
+      const response = await axios.post('/system/backups');
+      await fetchBackups();
+      alert(response.data?.message || 'Backup created successfully');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to create backup');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleRestoreBackup = async () => {
+    if (!selectedBackup) {
+      setSystemError('Select a backup to restore');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Restore backup ${selectedBackup}? This will overwrite current database data.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setRestoreLoading(true);
+      setSystemError('');
+      const response = await axios.post('/system/backups/restore', { fileName: selectedBackup });
+      await fetchStudents();
+      await fetchDbHealth();
+      alert(response.data?.message || 'Backup restored successfully');
+    } catch (err) {
+      setSystemError(err.response?.data?.message || 'Failed to restore backup');
+    } finally {
+      setRestoreLoading(false);
+    }
   };
 
   // Calculate statistics
@@ -145,6 +274,13 @@ const Dashboard = () => {
               <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-400 text-sm mt-1">Overview & analytics of student records</p>
             </div>
+            <button
+              onClick={() => setCredentialsModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-sm font-medium"
+            >
+              <UserCog size={16} />
+              Account Security
+            </button>
           </div>
         </div>
 
@@ -154,6 +290,13 @@ const Dashboard = () => {
             <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 flex gap-3">
               <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
               <div>{error}</div>
+            </div>
+          )}
+
+          {systemError && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-xl text-orange-700 flex gap-3">
+              <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+              <div>{systemError}</div>
             </div>
           )}
 
@@ -331,10 +474,172 @@ const Dashboard = () => {
                   </table>
                 </div>
               </div>
+
+              {/* Database Safety */}
+              <div className="mt-8 bg-white rounded-2xl p-6 border border-gray-100 shadow-soft">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <ShieldCheck size={20} className="text-emerald-600" />
+                      Database Safety & Backup
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">Create backups, run health checks, and restore data when needed.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={fetchDbHealth}
+                      disabled={healthLoading}
+                      className="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium disabled:opacity-60"
+                    >
+                      {healthLoading ? 'Checking...' : 'Run Health Check'}
+                    </button>
+                    <button
+                      onClick={handleCreateBackup}
+                      disabled={backupLoading}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-60"
+                    >
+                      {backupLoading ? 'Creating...' : 'Backup Now'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-sm text-gray-500 mb-2">Quick Check</p>
+                    <p className={`font-semibold ${dbHealth?.quickCheck === 'ok' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {dbHealth?.quickCheck || 'Not run yet'}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-sm text-gray-500 mb-2">Integrity Check</p>
+                    <p className={`font-semibold ${dbHealth?.integrityCheck === 'ok' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {dbHealth?.integrityCheck || 'Not run yet'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-gray-100 bg-gray-50">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                    <div className="flex items-center gap-2 text-gray-700 min-w-0">
+                      <Database size={18} className="text-gray-500" />
+                      <span className="text-sm font-medium">Available Backups</span>
+                    </div>
+                    <select
+                      value={selectedBackup}
+                      onChange={(e) => setSelectedBackup(e.target.value)}
+                      className="flex-1 px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                      {backups.length === 0 ? (
+                        <option value="">No backups found</option>
+                      ) : (
+                        backups.map((backup) => (
+                          <option key={backup.fileName} value={backup.fileName}>
+                            {backup.fileName}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <button
+                      onClick={fetchBackups}
+                      className="px-4 py-2.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-sm font-medium"
+                    >
+                      <span className="inline-flex items-center gap-1"><RotateCcw size={14} /> Refresh</span>
+                    </button>
+                    <button
+                      onClick={handleRestoreBackup}
+                      disabled={restoreLoading || backups.length === 0}
+                      className="px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-60"
+                    >
+                      {restoreLoading ? 'Restoring...' : 'Restore Backup'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
       </main>
+
+      {credentialsModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <KeyRound size={18} className="text-emerald-600" />
+              <h3 className="text-lg font-bold text-gray-900">Update Login Credentials</h3>
+            </div>
+
+            <form onSubmit={handleUpdateCredentials} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">New Username (optional)</label>
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  minLength={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">New Password (optional)</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  minLength={6}
+                  disabled={!newPassword}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCredentialsModalOpen(false);
+                    setCurrentPassword('');
+                    setNewUsername('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={credentialsLoading}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium disabled:opacity-60"
+                >
+                  {credentialsLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

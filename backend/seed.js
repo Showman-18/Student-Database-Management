@@ -1,11 +1,11 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
-const Student = require('./models/Student');
-const Admin = require('./models/Admin');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const bcrypt = require('bcryptjs');
+const { run, initDatabase } = require('./db');
 
 const sampleAdmin = {
-  username: 'admin',
-  password: 'admin123',
+  username: process.env.ADMIN_USERNAME || 'admin',
+  password: process.env.ADMIN_PASSWORD || 'admin123',
 };
 
 const sampleStudents = [
@@ -190,26 +190,65 @@ const sampleStudents = [
 
 async function seedDatabase() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB');
+    await initDatabase();
+    console.log('Connected to SQLite');
 
     // Clear existing data
-    await Admin.deleteMany({});
+    await run('DELETE FROM admins');
     console.log('Cleared existing admin records');
 
-    await Student.deleteMany({});
+    await run('DELETE FROM students');
     console.log('Cleared existing student records');
 
     // Insert default admin
-    const adminResult = await Admin.create(sampleAdmin);
-    console.log(`✓ Added default admin (Username: ${adminResult.username})`);
+    const hashedPassword = await bcrypt.hash(sampleAdmin.password, 10);
+    await run(
+      `INSERT INTO admins (username, password, created_at, updated_at)
+       VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [sampleAdmin.username, hashedPassword]
+    );
+    console.log(`✓ Added default admin (Username: ${sampleAdmin.username})`);
 
     // Insert sample data
-    const result = await Student.insertMany(sampleStudents);
-    console.log(`✓ Added ${result.length} sample students`);
+    for (const student of sampleStudents) {
+      const feesHistory = Array.isArray(student.feesHistory) && student.feesHistory.length > 0
+        ? student.feesHistory
+        : [
+            {
+              year: new Date().getFullYear(),
+              term1: { status: 'pending' },
+              term2: { status: 'pending' },
+              other: { status: 'pending' },
+            },
+          ];
+
+      await run(
+        `INSERT INTO students (
+          full_name, gr_no, pan_no, phone_number, caste, religion, address,
+          father_name, father_contact, mother_name, mother_contact, fees_history,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [
+          student.fullName,
+          student.grNo,
+          student.panNo,
+          student.phoneNumber,
+          student.caste || '',
+          student.religion || '',
+          student.address || '',
+          student.fatherName || '',
+          student.fatherContact || '',
+          student.motherName || '',
+          student.motherContact || '',
+          JSON.stringify(feesHistory),
+        ]
+      );
+    }
+
+    console.log(`✓ Added ${sampleStudents.length} sample students`);
 
     console.log('\nSample Students Added:');
-    result.forEach((student, index) => {
+    sampleStudents.forEach((student, index) => {
       console.log(`${index + 1}. ${student.fullName} (GR: ${student.grNo})`);
     });
 
