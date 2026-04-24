@@ -39,13 +39,13 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
   };
 
   const getStatusColor = (status) => {
-    if (status === 'paid') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
-    if (status === 'pending') return 'bg-amber-50 border-amber-200 text-amber-700';
-    return 'bg-gray-50 border-gray-200 text-gray-700';
+    if (status === 'paid') return 'text-green-700';
+    if (status === 'pending') return 'text-amber-700';
+    return 'text-gray-700';
   };
 
   const getStatusBadgeColor = (status) => {
-    if (status === 'paid') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'paid') return 'bg-green-100 text-green-700';
     if (status === 'pending') return 'bg-amber-100 text-amber-700';
     return 'bg-gray-100 text-gray-700';
   };
@@ -65,9 +65,7 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
       <div
         key={term}
         onClick={() => handleFeesCardClick(term, year, status)}
-        className={`p-4 rounded-2xl border-2 transition ${getStatusColor(
-          status
-        )} ${status === 'pending' ? 'cursor-pointer hover:shadow-lg' : ''}`}
+        className={`p-4 rounded-xl border border-gray-200 bg-white transition ${status === 'pending' ? 'cursor-pointer hover:bg-gray-50' : ''}`}
       >
         <div className="flex justify-between items-start mb-3">
           <div>
@@ -77,7 +75,7 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
             </p>
           </div>
           {status === 'paid' && termData && (
-            <CreditCard size={16} className="text-emerald-600" />
+            <CreditCard size={16} className="text-green-700" />
           )}
         </div>
 
@@ -124,23 +122,22 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[95vh] overflow-y-auto shadow-elevated">
-        {/* Header with Gradient Background */}
-        <div className="sticky top-0 bg-emerald-600 px-8 py-8 text-white z-40 rounded-t-3xl">
+    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl border border-gray-200 max-w-3xl w-full max-h-[95vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white px-8 py-6 border-b border-gray-200 z-40 rounded-t-2xl">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center border-2 border-white/30">
-                <span className="text-white font-bold text-2xl">{student.fullName.charAt(0).toUpperCase()}</span>
+              <div className="w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center">
+                <span className="font-semibold text-2xl">{student.fullName.charAt(0).toUpperCase()}</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{student.fullName}</h2>
-                <p className="text-white/70 text-sm mt-1">{student.grNo}</p>
+                <h2 className="text-2xl font-semibold text-gray-900">{student.fullName}</h2>
+                <p className="text-gray-500 text-sm mt-1">{student.grNo}</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition text-white"
+              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700"
             >
               <X size={24} />
             </button>
@@ -149,26 +146,14 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
 
         {/* Content */}
         <div className="p-8 space-y-8">
-          {/* Contact Information Card */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-100 rounded-lg">
-                  <Phone size={18} className="text-emerald-600" />
-                </div>
-                <p className="text-gray-500 text-xs font-bold uppercase">Phone</p>
-              </div>
-              <p className="text-gray-900 font-semibold text-lg">{student.phoneNumber}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 pb-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Phone</p>
+              <p className="text-gray-900 font-semibold">{student.phoneNumber || '-'}</p>
             </div>
-
-            <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-emerald-100 rounded-lg">
-                  <User size={18} className="text-emerald-600" />
-                </div>
-                <p className="text-gray-500 text-xs font-bold uppercase">PAN No</p>
-              </div>
-              <p className="text-gray-900 font-semibold text-lg">{student.panNo}</p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">PAN No</p>
+              <p className="text-gray-900 font-semibold">{student.panNo || '-'}</p>
             </div>
           </div>
 
@@ -176,17 +161,17 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           {(student.caste || student.religion) && (
             <div>
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <User size={16} className="text-emerald-600" /> Personal Details
+                <User size={16} className="text-gray-700" /> Personal Details
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {student.caste && (
-                  <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <div className="py-2 border-b border-gray-100">
                     <p className="text-gray-400 text-xs font-bold mb-2">CASTE</p>
                     <p className="text-gray-900 font-semibold">{student.caste}</p>
                   </div>
                 )}
                 {student.religion && (
-                  <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                  <div className="py-2 border-b border-gray-100">
                     <p className="text-gray-400 text-xs font-bold mb-2">RELIGION</p>
                     <p className="text-gray-900 font-semibold">{student.religion}</p>
                   </div>
@@ -199,9 +184,9 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           {student.address && (
             <div>
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <MapPin size={16} className="text-emerald-600" /> Address
+                <MapPin size={16} className="text-gray-700" /> Address
               </h3>
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+              <div className="py-2 border-y border-gray-100">
                 <p className="text-gray-600 leading-relaxed">{student.address}</p>
               </div>
             </div>
@@ -210,12 +195,12 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           {/* Parent Details */}
           <div>
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Users size={16} className="text-emerald-600" /> Parent Information
+              <Users size={16} className="text-gray-700" /> Parent Information
             </h3>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Father */}
-              <div className="bg-gray-50 rounded-2xl p-6 border-l-4 border-l-emerald-500 border border-gray-100">
-                <h4 className="text-emerald-800 font-bold text-sm mb-4">Father</h4>
+              <div className="p-2 border-l-2 border-l-gray-300">
+                <h4 className="text-gray-900 font-bold text-sm mb-4">Father</h4>
                 <div className="space-y-3">
                   {student.fatherName && (
                     <div>
@@ -233,8 +218,8 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
               </div>
 
               {/* Mother */}
-              <div className="bg-gray-50 rounded-2xl p-6 border-l-4 border-l-emerald-400 border border-gray-100">
-                <h4 className="text-emerald-800 font-bold text-sm mb-4">Mother</h4>
+              <div className="p-2 border-l-2 border-l-gray-300">
+                <h4 className="text-gray-900 font-bold text-sm mb-4">Mother</h4>
                 <div className="space-y-3">
                   {student.motherName && (
                     <div>
@@ -257,11 +242,11 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
           <div>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                <CreditCard size={16} className="text-emerald-600" /> Fees Payment History
+                <CreditCard size={16} className="text-gray-700" /> Fees Payment History
               </h3>
               <button
                 onClick={() => setAddYearModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition font-medium text-xs border border-emerald-200"
+                className="btn-ghost !px-3 !py-1.5 !text-xs"
               >
                 <Plus size={14} />
                 Add Year
@@ -275,11 +260,11 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
                   const yearFeesHistory = getFeesHistoryForYear(year);
                   return (
                     <div key={year}>
-                      <h4 className="text-lg font-bold text-gray-900 mb-4 pb-3 border-b-2 border-emerald-400">
+                      <h4 className="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-gray-300">
                         {year}
                       </h4>
                       
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {renderFeesCard('term1', 'Term 1', yearFeesHistory)}
                         {renderFeesCard('term2', 'Term 2', yearFeesHistory)}
                         {renderFeesCard('other', 'Other', yearFeesHistory)}
@@ -296,7 +281,7 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
                 <p className="text-gray-500 text-sm font-medium mb-3">No fees history yet</p>
                 <button
                   onClick={() => setAddYearModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium text-sm"
+                  className="btn-primary"
                 >
                   <Plus size={16} />
                   Add First Year
@@ -307,24 +292,24 @@ const StudentModal = ({ student, isOpen, onClose, onEdit, onDelete, onSuccess })
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-8 py-6 flex justify-end gap-3">
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-8 py-6 flex justify-end gap-3">
           <button
             onClick={() => onDelete?.(student)}
-            className="flex items-center gap-2 px-6 py-2.5 border border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition font-medium text-sm"
+            className="btn-danger"
           >
             <Trash2 size={16} />
             Delete
           </button>
           <button
             onClick={() => onEdit?.(student)}
-            className="flex items-center gap-2 px-6 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
+            className="btn-ghost"
           >
             <Edit2 size={16} />
             Edit
           </button>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium text-sm"
+            className="btn-primary"
           >
             Close
           </button>

@@ -24,7 +24,15 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const requestUrl = error.config?.url || '';
+    const isAuthRequest =
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/setup') ||
+      requestUrl.includes('/auth/recovery-question') ||
+      requestUrl.includes('/auth/verify-recovery-answer') ||
+      requestUrl.includes('/auth/recover-credentials');
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }

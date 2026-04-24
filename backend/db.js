@@ -91,6 +91,42 @@ const integrityCheck = async () => {
   return result ? Object.values(result)[0] : 'unknown';
 };
 
+const ensureAdminRecoveryColumns = async () => {
+  const columns = await all('PRAGMA table_info(admins)');
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  if (!columnNames.has('recovery_question')) {
+    await run("ALTER TABLE admins ADD COLUMN recovery_question TEXT NOT NULL DEFAULT ''");
+  }
+
+  if (!columnNames.has('recovery_answer_hash')) {
+    await run("ALTER TABLE admins ADD COLUMN recovery_answer_hash TEXT NOT NULL DEFAULT ''");
+  }
+};
+
+const ensureStudentColumns = async () => {
+  const columns = await all('PRAGMA table_info(students)');
+  const columnNames = new Set(columns.map((column) => column.name));
+
+  const requiredColumns = [
+    ['dob', "TEXT NOT NULL DEFAULT ''"],
+    ['id_no', "TEXT NOT NULL DEFAULT ''"],
+    ['aadhar_no', "TEXT NOT NULL DEFAULT ''"],
+    ['blood_group', "TEXT NOT NULL DEFAULT ''"],
+    ['mother_tongue', "TEXT NOT NULL DEFAULT ''"],
+    ['sub_caste', "TEXT NOT NULL DEFAULT ''"],
+    ['category', "TEXT NOT NULL DEFAULT ''"],
+    ['height', 'REAL NOT NULL DEFAULT 0'],
+    ['weight', 'REAL NOT NULL DEFAULT 0'],
+  ];
+
+  for (const [columnName, columnDefinition] of requiredColumns) {
+    if (!columnNames.has(columnName)) {
+      await run(`ALTER TABLE students ADD COLUMN ${columnName} ${columnDefinition}`);
+    }
+  }
+};
+
 const initDatabase = async () => {
   openDatabase();
   await applyPragmas();
@@ -104,6 +140,8 @@ const initDatabase = async () => {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  await ensureAdminRecoveryColumns();
 
   await run(`
     CREATE TABLE IF NOT EXISTS students (
@@ -124,6 +162,8 @@ const initDatabase = async () => {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  await ensureStudentColumns();
 };
 
 module.exports = {

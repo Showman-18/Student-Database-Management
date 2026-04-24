@@ -124,9 +124,9 @@ async function seedDatabase() {
     // Insert default admin
     const hashedPassword = await bcrypt.hash(sampleAdmin.password, 10);
     await run(
-      `INSERT INTO admins (username, password, created_at, updated_at)
-       VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [sampleAdmin.username, hashedPassword]
+      `INSERT INTO admins (username, password, recovery_question, recovery_answer_hash, created_at, updated_at)
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [sampleAdmin.username, hashedPassword, '', '']
     );
     console.log(`✓ Added default admin (Username: ${sampleAdmin.username})`);
 

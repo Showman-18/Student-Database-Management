@@ -4,11 +4,20 @@ import axios from '../api/axios';
 
 const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
+    dob: '',
     fullName: '',
     grNo: '',
     panNo: '',
     phoneNumber: '',
+    idNo: '',
+    aadharNo: '',
+    bloodGroup: '',
+    motherTongue: '',
     caste: '',
+    subCaste: '',
+    category: '',
+    height: '',
+    weight: '',
     religion: '',
     address: '',
     fatherName: '',
@@ -21,11 +30,24 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
+  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const categories = ['sc', 'st', 'nt', 'obc', 'sbc', 'open'];
+
+  const sanitizeDigitsInput = (value, maxLength) => value.replace(/\D/g, '').slice(0, maxLength);
+  const sanitizePanInput = (value) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    const normalizedValue =
+      ['phoneNumber', 'fatherContact', 'motherContact', 'aadharNo'].includes(name)
+        ? sanitizeDigitsInput(value, name === 'aadharNo' ? 12 : 10)
+        : name === 'panNo'
+          ? sanitizePanInput(value)
+        : value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: normalizedValue,
     }));
   };
 
@@ -39,11 +61,20 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
       await axios.post('/students', formData);
       setSuccess('Student created successfully!');
       setFormData({
+        dob: '',
         fullName: '',
         grNo: '',
         panNo: '',
         phoneNumber: '',
+        idNo: '',
+        aadharNo: '',
+        bloodGroup: '',
+        motherTongue: '',
         caste: '',
+        subCaste: '',
+        category: '',
+        height: '',
+        weight: '',
         religion: '',
         address: '',
         fatherName: '',
@@ -89,7 +120,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="p-8 pb-28 space-y-8">
           {/* Success Message */}
           {success && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-2xl text-green-700 flex items-center gap-3">
@@ -125,6 +156,29 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">DOB *</label>
+                  <input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">REG NO *</label>
+                  <input
+                    type="text"
+                    name="grNo"
+                    placeholder="REG001"
+                    value={formData.grNo}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-bold text-gray-500 mb-2">FULL NAME *</label>
                   <input
                     type="text"
@@ -137,15 +191,76 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2">GR NUMBER *</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">ADDRESS *</label>
                   <input
                     type="text"
-                    name="grNo"
-                    placeholder="GR001"
-                    value={formData.grNo}
+                    name="address"
+                    placeholder="Enter full address"
+                    value={formData.address}
                     onChange={handleInputChange}
                     required
                     className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">MOBILE NO *</label>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    placeholder="9876543210"
+                    value={formData.phoneNumber}
+                    onChange={handleInputChange}
+                    required
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    minLength={10}
+                    maxLength={10}
+                    title="Enter exactly 10 digits"
+                    className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Identity Details */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                Identity Details
+              </h3>
+            </div>
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">ID NO *</label>
+                  <input
+                    type="text"
+                    name="idNo"
+                    placeholder="ID001"
+                    value={formData.idNo}
+                    onChange={handleInputChange}
+                    required
+                    maxLength={20}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">AADHAR CARD NO *</label>
+                  <input
+                    type="text"
+                    name="aadharNo"
+                    placeholder="12-digit Aadhar number"
+                    value={formData.aadharNo}
+                    onChange={handleInputChange}
+                    required
+                    inputMode="numeric"
+                    pattern="\d{12}"
+                    minLength={12}
+                    maxLength={12}
+                    title="Enter exactly 12 digits"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
                 <div>
@@ -153,23 +268,101 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                   <input
                     type="text"
                     name="panNo"
-                    placeholder="XXXXX0000X"
+                    placeholder="ABCDE1234F"
                     value={formData.panNo}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                    inputMode="text"
+                    pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
+                    maxLength={10}
+                    title="Enter a valid PAN format like ABCDE1234F"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2">PHONE NUMBER *</label>
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    placeholder="+91 9876543210"
-                    value={formData.phoneNumber}
+                  <label className="block text-xs font-bold text-gray-500 mb-2">BLOOD GROUP *</label>
+                  <select
+                    name="bloodGroup"
+                    value={formData.bloodGroup}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2.5 border border-emerald-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  >
+                    <option value="">Select blood group</option>
+                    {bloodGroups.map((group) => (
+                      <option key={group} value={group}>{group}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">MOTHER TONGUE *</label>
+                  <input
+                    type="text"
+                    name="motherTongue"
+                    placeholder="e.g., Marathi"
+                    value={formData.motherTongue}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">CATEGORY *</label>
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>{category.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Details */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                Additional Details
+              </h3>
+            </div>
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">HEIGHT *</label>
+                  <input
+                    type="number"
+                    name="height"
+                    placeholder="Height in cm"
+                    value={formData.height}
+                    onChange={handleInputChange}
+                    required
+                    min={30}
+                    max={300}
+                    step="0.1"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">WEIGHT *</label>
+                  <input
+                    type="number"
+                    name="weight"
+                    placeholder="Weight in kg"
+                    value={formData.weight}
+                    onChange={handleInputChange}
+                    required
+                    min={1}
+                    max={500}
+                    step="0.1"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
               </div>
@@ -191,20 +384,34 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                   <input
                     type="text"
                     name="caste"
-                    placeholder="e.g., General"
+                    placeholder="e.g., Maratha"
                     value={formData.caste}
                     onChange={handleInputChange}
+                    required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-2">RELIGION</label>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">SUB CASTE *</label>
+                  <input
+                    type="text"
+                    name="subCaste"
+                    placeholder="e.g., Kunbi"
+                    value={formData.subCaste}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-2">RELIGION *</label>
                   <input
                     type="text"
                     name="religion"
                     placeholder="e.g., Hindu"
                     value={formData.religion}
                     onChange={handleInputChange}
+                    required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
@@ -227,6 +434,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                 value={formData.address}
                 onChange={handleInputChange}
                 rows="3"
+                required
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white resize-none"
               />
             </div>
@@ -252,6 +460,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     placeholder="Father's name"
                     value={formData.fatherName}
                     onChange={handleInputChange}
+                    required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
@@ -260,9 +469,15 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                   <input
                     type="tel"
                     name="fatherContact"
-                    placeholder="Father's contact"
+                    placeholder="10-digit contact"
                     value={formData.fatherContact}
                     onChange={handleInputChange}
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    minLength={10}
+                    maxLength={10}
+                    title="Enter exactly 10 digits"
+                    required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
@@ -279,6 +494,7 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                     placeholder="Mother's name"
                     value={formData.motherName}
                     onChange={handleInputChange}
+                    required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
@@ -287,9 +503,15 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                   <input
                     type="tel"
                     name="motherContact"
-                    placeholder="Mother's contact"
+                    placeholder="10-digit contact"
                     value={formData.motherContact}
                     onChange={handleInputChange}
+                    inputMode="numeric"
+                    pattern="\d{10}"
+                    minLength={10}
+                    maxLength={10}
+                    title="Enter exactly 10 digits"
+                    required
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
                   />
                 </div>
@@ -299,15 +521,16 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
         </form>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-8 py-6 flex justify-end gap-3">
+        <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-gray-100 px-8 py-6 flex justify-end gap-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)]">
           <button
+            type="button"
             onClick={onClose}
             className="px-6 py-2.5 text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
           >
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading}
             className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >

@@ -92,13 +92,13 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
   const termLabel = term === 'term1' ? 'Term 1' : term === 'term2' ? 'Term 2' : 'Other';
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="ui-card rounded-3xl max-w-lg w-full">
+    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl border border-gray-200 max-w-lg w-full">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-white rounded-t-3xl">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white rounded-t-2xl">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Record Fees Payment</h2>
-            <p className="text-gray-400 text-sm mt-0.5">
+            <h2 className="text-xl font-semibold text-gray-900">Record Fees Payment</h2>
+            <p className="text-gray-500 text-sm mt-0.5">
               {student.fullName} • {termLabel} {year}
             </p>
           </div>
@@ -125,7 +125,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
             {!isNotApplicable && !isOtherPaymentMode && (
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  <FileText size={16} className="text-emerald-600" />
+                  <FileText size={16} className="text-gray-700" />
                   Fees Receipt Number *
                 </label>
                 <input
@@ -134,7 +134,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
                   value={formData.receiptNo}
                   onChange={handleChange}
                   placeholder="e.g., REC-2024-001"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
+                  className="control-input"
                 />
               </div>
             )}
@@ -143,14 +143,14 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
             {!isNotApplicable && (
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  <CreditCard size={16} className="text-emerald-600" />
+                  <CreditCard size={16} className="text-gray-700" />
                   Mode of Payment *
                 </label>
                 <select
                   name="modeOfPayment"
                   value={formData.modeOfPayment}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                  className="control-select"
                 >
                   <option value="check">Check</option>
                   <option value="cash">Cash</option>
@@ -178,7 +178,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
                       onChange={handleChange}
                       placeholder="Enter payment details or comments..."
                       rows="4"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition resize-none"
+                      className="control-textarea resize-none"
                     />
                   </div>
                 ) : (
@@ -194,7 +194,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
+                      className="control-input"
                     />
                   </div>
                 )}
@@ -205,7 +205,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
             {!isNotApplicable && (
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  <Calendar size={16} className="text-emerald-600" />
+                  <Calendar size={16} className="text-gray-700" />
                   Payment Date *
                 </label>
                 <input
@@ -213,7 +213,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
                   name="paidDate"
                   value={formData.paidDate}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
+                  className="control-input"
                 />
               </div>
             )}
@@ -227,7 +227,7 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition bg-white"
+                className="control-select"
               >
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
@@ -241,17 +241,17 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-white rounded-b-3xl">
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-white rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
+            className="btn-ghost"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             {loading ? 'Saving...' : 'Record Payment'}
           </button>

@@ -44,17 +44,17 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="ui-card rounded-3xl max-w-md w-full">
+    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl border border-gray-200 max-w-md w-full">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-white rounded-t-3xl">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white rounded-t-2xl">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Add Fees History Year</h2>
-            <p className="text-gray-400 text-sm mt-0.5">{student.fullName}</p>
+            <h2 className="text-xl font-semibold text-gray-900">Add Fees History Year</h2>
+            <p className="text-gray-500 text-sm mt-0.5">{student.fullName}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition"
+            className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg p-2 transition"
           >
             <X size={24} />
           </button>
@@ -74,7 +74,7 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
             {/* Year Input */}
             <div>
               <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                <Calendar size={16} className="text-emerald-600" />
+                <Calendar size={16} className="text-gray-700" />
                 Academic Year *
               </label>
               <input
@@ -84,25 +84,25 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
                 placeholder="e.g., 2024"
                 min="1900"
                 max="2100"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
+                className="control-input"
               />
-              <p className="text-xs text-gray-400 mt-1">This will create Term 1, Term 2, and Other fees records</p>
+              <p className="text-xs text-gray-500 mt-1">This will create Term 1, Term 2, and Other fees records.</p>
             </div>
           </form>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 bg-white rounded-b-3xl">
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-white rounded-b-2xl">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium text-sm"
+            className="btn-ghost"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             {loading ? 'Adding...' : 'Add Year'}
           </button>
