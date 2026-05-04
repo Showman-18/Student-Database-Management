@@ -9,11 +9,16 @@ const MAX_FAILED_ATTEMPTS = 5;
 const COOLDOWN_MS = 2 * 60 * 1000;
 const attemptTrackers = new Map();
 
+// FIX M1: key the tracker by (action + IP) so different clients have independent counters
+const makeTrackerKey = (action, req) => {
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  return `${action}::${ip}`;
+};
+
 const getAttemptTracker = (key) => {
   if (!attemptTrackers.has(key)) {
     attemptTrackers.set(key, { attempts: 0, blockedUntil: 0 });
   }
-
   return attemptTrackers.get(key);
 };
 
@@ -138,34 +143,15 @@ router.post('/setup', async (req, res) => {
   }
 });
 
-// Initialize admin user (run once)
-router.post('/init-admin', async (req, res) => {
-  try {
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-
-    const existingAdmin = await get('SELECT * FROM admins WHERE username = ?', [adminUsername]);
-    if (existingAdmin) {
-      return res.status(400).json({ message: 'Admin already exists' });
-    }
-
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    await run(
-      `INSERT INTO admins (username, password, recovery_question, recovery_answer_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [adminUsername, hashedPassword, '', '']
-    );
-
-    res.status(201).json({ message: 'Admin created successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating admin', error: error.message });
-  }
-});
+// FIX M7: /init-admin route removed — it was unauthenticated, permanently public,
+// and redundant with /setup. Any code that called it should use /setup instead.
 
 // Login route
 router.post('/login', async (req, res) => {
   try {
-    const attemptState = canAttempt('login');
+    // FIX M1: key by IP address so each client has an independent counter
+    const trackerKey = makeTrackerKey('login', req);
+    const attemptState = canAttempt(trackerKey);
     if (!attemptState.allowed) {
       return res.status(429).json({ message: attemptState.message });
     }
@@ -186,7 +172,7 @@ router.post('/login', async (req, res) => {
     const admin = await get('SELECT * FROM admins WHERE username = ?', [username]);
 
     if (!admin) {
-      const failureState = recordFailedAttempt('login');
+      const failureState = recordFailedAttempt(trackerKey);
       if (failureState.blocked) {
         return res.status(429).json({ message: failureState.message });
       }
@@ -197,14 +183,14 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordValid) {
-      const failureState = recordFailedAttempt('login');
+      const failureState = recordFailedAttempt(trackerKey);
       if (failureState.blocked) {
         return res.status(429).json({ message: failureState.message });
       }
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    resetAttempts('login');
+    resetAttempts(trackerKey);
 
     // Generate JWT token
     const token = jwt.sign({ id: admin.id }, process.env.JWT_SECRET, {
@@ -246,7 +232,9 @@ router.get('/recovery-question', async (req, res) => {
 // Verify recovery answer (single-admin mode)
 router.post('/verify-recovery-answer', async (req, res) => {
   try {
-    const attemptState = canAttempt('recovery-answer');
+    // FIX M1: key by IP address
+    const trackerKey = makeTrackerKey('recovery-answer', req);
+    const attemptState = canAttempt(trackerKey);
     if (!attemptState.allowed) {
       return res.status(429).json({ message: attemptState.message });
     }
@@ -271,14 +259,14 @@ router.post('/verify-recovery-answer', async (req, res) => {
     const isValid = await bcrypt.compare(normalizedAnswer, admin.recovery_answer_hash);
 
     if (!isValid) {
-      const failureState = recordFailedAttempt('recovery-answer');
+      const failureState = recordFailedAttempt(trackerKey);
       if (failureState.blocked) {
         return res.status(429).json({ message: failureState.message });
       }
       return res.status(401).json({ message: 'Incorrect security answer' });
     }
 
-    resetAttempts('recovery-answer');
+    resetAttempts(trackerKey);
 
     return res.json({
       message: 'Security answer verified.',

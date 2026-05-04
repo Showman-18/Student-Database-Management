@@ -1,48 +1,97 @@
 import React, { useState } from 'react';
-import { X, Calendar, CreditCard, FileText, AlertCircle, MessageSquare } from 'lucide-react';
+import { X, CreditCard, FileText, Calendar, MessageSquare, AlertCircle } from 'lucide-react';
 import axios from '../api/axios';
+
+/* ── Design tokens ── */
+const T = {
+  canvas:  '#ffffff',
+  soft:    '#fafafa',
+  hairline:'#e5e5e5',
+  hairlineStrong: '#d4d4d4',
+  ink:     '#000000',
+  inkDeep: '#090909',
+  charcoal:'#525252',
+  body:    '#737373',
+  mute:    '#a3a3a3',
+};
+
+const inputStyle = {
+  background: T.canvas,
+  border: `1px solid ${T.hairline}`,
+  borderRadius: 9999,
+  padding: '0 14px',
+  height: 38,
+  fontSize: 13,
+  color: T.ink,
+  outline: 'none',
+  fontFamily: 'inherit',
+  width: '100%',
+  transition: 'border-color 0.15s',
+};
+
+const selectStyle = {
+  ...inputStyle,
+  appearance: 'none',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 12px center',
+  paddingRight: 32,
+  cursor: 'pointer',
+};
+
+const labelStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 11,
+  fontWeight: 500,
+  color: T.body,
+  marginBottom: 6,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+};
+
+const onFocusStyle = e => { e.target.style.borderColor = T.ink; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)'; };
+const onBlurStyle  = e => { e.target.style.borderColor = T.hairline; e.target.style.boxShadow = 'none'; };
 
 const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    receiptNo: '',
-    modeOfPayment: 'check',
-    amount: '',
-    paidDate: '',
-    status: 'paid',
-    comment: '',
+    receiptNo: '', modeOfPayment: 'check', amount: '',
+    paidDate: '', status: 'paid', comment: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen || !student) return null;
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(p => ({ ...p, [name]: value }));
   };
 
-  const isOtherFees = term === 'other';
-  const isNotApplicable = formData.status === 'not applicable';
-  const isOtherPaymentMode = formData.modeOfPayment === 'other';
+  const isOtherFees      = term === 'other';
+  const isNotApplicable  = formData.status === 'not applicable';
+  const isOtherPayMode   = formData.modeOfPayment === 'other';
 
-  const handleSubmit = async (e) => {
+  // FIX M4: single handler, called only via form onSubmit.
+  // The footer button is type="submit" so it triggers the form — no double-fire.
+  const handleSubmit = async e => {
     e.preventDefault();
-    
-    // Only validate fields if not "not applicable"
+
+    // FIX C2: amount is always required when payment is being recorded
     if (!isNotApplicable) {
-      // If payment mode is "other", require comment and date
-      if (isOtherPaymentMode) {
+      if (!formData.amount || Number(formData.amount) <= 0) {
+        setError('Please enter a valid amount greater than 0');
+        return;
+      }
+      if (isOtherPayMode) {
         if (!formData.comment || !formData.paidDate) {
-          setError('Please fill all fields');
+          setError('Please fill all required fields');
           return;
         }
       } else {
-        // For other modes, require receipt, mode, amount, and date
-        if (!formData.receiptNo || !formData.modeOfPayment || !formData.amount || !formData.paidDate) {
-          setError('Please fill all fields');
+        if (!formData.receiptNo || !formData.modeOfPayment || !formData.paidDate) {
+          setError('Please fill all required fields');
           return;
         }
       }
@@ -50,36 +99,29 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
 
     setLoading(true);
     setError('');
-
     try {
-      // Only include date if not "not applicable"
-      const submitData = {
-        status: formData.status,
-      };
-      
+      const submitData = { status: formData.status };
+
       if (!isNotApplicable) {
         submitData.modeOfPayment = formData.modeOfPayment;
-        submitData.paidDate = new Date(formData.paidDate).toISOString();
-        
-        if (isOtherPaymentMode) {
+
+        // FIX m3: store date as local date string to avoid UTC timezone shift
+        // Append local midnight so toISOString doesn't roll back a day in UTC+ zones
+        const localDate = new Date(`${formData.paidDate}T00:00:00`);
+        submitData.paidDate = localDate.toISOString();
+
+        // FIX C1: amount is always sent regardless of modeOfPayment
+        submitData.amount = formData.amount;
+
+        if (isOtherPayMode) {
           submitData.comment = formData.comment;
         } else {
           submitData.receiptNo = formData.receiptNo;
-          submitData.amount = formData.amount;
         }
       }
 
       await axios.put(`/students/${student._id}/fees/${year}/${term}`, submitData);
-
-      setFormData({
-        receiptNo: '',
-        modeOfPayment: 'check',
-        amount: '',
-        paidDate: '',
-        status: 'paid',
-        comment: '',
-      });
-      
+      setFormData({ receiptNo: '', modeOfPayment: 'check', amount: '', paidDate: '', status: 'paid', comment: '' });
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -91,177 +133,135 @@ const FeesPaymentModal = ({ student, year, term, isOpen, onClose, onSuccess }) =
 
   const termLabel = term === 'term1' ? 'Term 1' : term === 'term2' ? 'Term 2' : 'Other';
 
+  const btnPrimary = {
+    background: T.ink, color: '#fff', border: 'none', borderRadius: 9999,
+    padding: '0 20px', height: 36, fontSize: 13, fontWeight: 500,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+    opacity: loading ? 0.6 : 1, transition: 'background 0.15s',
+  };
+  const btnOutline = {
+    background: T.canvas, color: T.ink, border: `1px solid ${T.hairlineStrong}`,
+    borderRadius: 9999, padding: '0 18px', height: 36, fontSize: 13, fontWeight: 500,
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', fontFamily: 'inherit',
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-  <div className="bg-white rounded-2xl border border-gray-100 max-w-lg w-full shadow-card">
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50, backdropFilter: 'blur(2px)', fontFamily: "'DM Sans',ui-sans-serif,system-ui,sans-serif" }}>
+      <div style={{ background: T.canvas, borderRadius: 12, border: `1px solid ${T.hairline}`, maxWidth: 460, width: '100%' }}>
 
-    {/* Header */}
-    <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-white/80 backdrop-blur-md rounded-t-2xl">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Record Fees Payment</h2>
-        <p className="text-gray-400 text-sm mt-0.5">
-          {student.fullName} • {termLabel} {year}
-        </p>
-      </div>
-      <button
-        onClick={onClose}
-        className="p-1.5 hover:bg-gray-100 rounded-lg transition text-gray-500"
-      >
-        <X size={20} />
-      </button>
-    </div>
-
-    {/* Content */}
-    <div className="p-8">
-      <form onSubmit={handleSubmit} className="space-y-5">
-
-        {/* Error Message */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex gap-3 text-red-600 text-sm">
-            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-            <div>{error}</div>
-          </div>
-        )}
-
-        {/* Fees Receipt Number */}
-        {!isNotApplicable && !isOtherPaymentMode && (
+        {/* Header */}
+        <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.hairline}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-              <FileText size={14} className="text-emerald-600" />
-              Fees Receipt Number *
-            </label>
-            <input
-              type="text"
-              name="receiptNo"
-              value={formData.receiptNo}
-              onChange={handleChange}
-              placeholder="e.g., REC-2024-001"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm"
-            />
+            <h2 style={{ fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, color: T.ink, margin: 0 }}>Record Fees Payment</h2>
+            <p style={{ fontSize: 12, color: T.mute, margin: '2px 0 0' }}>{student.fullName} · {termLabel} {year}</p>
           </div>
-        )}
-
-        {/* Mode of Payment */}
-        {!isNotApplicable && (
-          <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-              <CreditCard size={14} className="text-emerald-600" />
-              Mode of Payment *
-            </label>
-            <select
-              name="modeOfPayment"
-              value={formData.modeOfPayment}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm"
-            >
-              <option value="check">Check</option>
-              <option value="cash">Cash</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="credit_card">Credit Card</option>
-              <option value="debit_card">Debit Card</option>
-              <option value="upi">UPI</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-        )}
-
-        {/* Amount or Comment */}
-        {!isNotApplicable && (
-          <>
-            {isOtherPaymentMode ? (
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-                  <MessageSquare size={14} className="text-emerald-600" />
-                  Comments *
-                </label>
-                <textarea
-                  name="comment"
-                  value={formData.comment}
-                  onChange={handleChange}
-                  placeholder="Enter payment details or comments..."
-                  rows="4"
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm resize-none"
-                />
-              </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">
-                  Amount (₹) *
-                </label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm"
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Payment Date */}
-        {!isNotApplicable && (
-          <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-              <Calendar size={14} className="text-emerald-600" />
-              Payment Date *
-            </label>
-            <input
-              type="date"
-              name="paidDate"
-              value={formData.paidDate}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm"
-            />
-          </div>
-        )}
-
-        {/* Status */}
-        <div>
-          <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">
-            Status *
-          </label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm"
-          >
-            <option value="pending">Pending</option>
-            <option value="paid">Paid</option>
-            {isOtherFees && <option value="not applicable">Not Applicable</option>}
-          </select>
-          {isNotApplicable && (
-            <p className="text-xs text-gray-400 mt-2">Other fees marked as not applicable</p>
-          )}
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, borderRadius: 9999, color: T.mute, display: 'flex' }}
+            onMouseEnter={e => e.currentTarget.style.color = T.ink}
+            onMouseLeave={e => e.currentTarget.style.color = T.mute}>
+            <X size={17} />
+          </button>
         </div>
 
-      </form>
-    </div>
+        {/* Body — single <form> with id so footer submit button targets it */}
+        <form id="fees-payment-form" onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-    {/* Footer */}
-    <div className="flex justify-end gap-3 px-8 py-6 border-t border-gray-100 bg-white/80 backdrop-blur-md rounded-b-2xl">
-      <button
-        onClick={onClose}
-        className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium text-sm"
-      >
-        Cancel
-      </button>
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-100 transition font-medium text-sm disabled:opacity-50"
-      >
-        {loading ? 'Saving...' : 'Record Payment'}
-      </button>
-    </div>
+          {error && (
+            <div style={{ padding: '10px 14px', background: T.soft, border: `1px solid ${T.hairline}`, borderRadius: 8, fontSize: 13, color: '#dc2626', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />{error}
+            </div>
+          )}
 
-  </div>
-</div>
+          {/* Status */}
+          <div>
+            <label style={labelStyle}>Status *</label>
+            <select name="status" value={formData.status} onChange={handleChange} style={selectStyle} onFocus={onFocusStyle} onBlur={onBlurStyle}>
+              <option value="pending">Pending</option>
+              <option value="paid">Paid</option>
+              {isOtherFees && <option value="not applicable">Not Applicable</option>}
+            </select>
+            {isNotApplicable && <p style={{ fontSize: 11, color: T.mute, marginTop: 5 }}>Other fees marked as not applicable</p>}
+          </div>
+
+          {/* Receipt No — shown for all non-other payment modes */}
+          {!isNotApplicable && !isOtherPayMode && (
+            <div>
+              <label style={labelStyle}><FileText size={12} />Receipt Number *</label>
+              <input type="text" name="receiptNo" value={formData.receiptNo} onChange={handleChange} placeholder="e.g., REC-2024-001" style={inputStyle} onFocus={onFocusStyle} onBlur={onBlurStyle} />
+            </div>
+          )}
+
+          {/* Mode of Payment */}
+          {!isNotApplicable && (
+            <div>
+              <label style={labelStyle}><CreditCard size={12} />Mode of Payment *</label>
+              <select name="modeOfPayment" value={formData.modeOfPayment} onChange={handleChange} style={selectStyle} onFocus={onFocusStyle} onBlur={onBlurStyle}>
+                <option value="check">Check</option>
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="debit_card">Debit Card</option>
+                <option value="upi">UPI</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          )}
+
+          {/* Amount — FIX C1+C2: always shown and required when recording a payment */}
+          {!isNotApplicable && (
+            <div>
+              <label style={labelStyle}>Amount (₹) *</label>
+              <input
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                placeholder="0.00"
+                step="0.01"
+                min="0.01"
+                required={!isNotApplicable}
+                style={inputStyle}
+                onFocus={onFocusStyle}
+                onBlur={onBlurStyle}
+              />
+            </div>
+          )}
+
+          {/* Comment — only for "other" payment mode */}
+          {!isNotApplicable && isOtherPayMode && (
+            <div>
+              <label style={labelStyle}><MessageSquare size={12} />Comments *</label>
+              <textarea name="comment" value={formData.comment} onChange={handleChange} placeholder="Enter payment details or comments..." rows={3}
+                style={{ ...inputStyle, height: 'auto', borderRadius: 10, padding: '10px 14px', resize: 'none' }}
+                onFocus={onFocusStyle} onBlur={onBlurStyle} />
+            </div>
+          )}
+
+          {/* Payment Date */}
+          {!isNotApplicable && (
+            <div>
+              <label style={labelStyle}><Calendar size={12} />Payment Date *</label>
+              <input type="date" name="paidDate" value={formData.paidDate} onChange={handleChange} style={inputStyle} onFocus={onFocusStyle} onBlur={onBlurStyle} />
+            </div>
+          )}
+
+        </form>
+
+        {/* Footer — FIX M4: button is type="submit" targeting the form; no onClick handler */}
+        <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.hairline}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button type="button" onClick={onClose} style={btnOutline}
+            onMouseEnter={e => e.currentTarget.style.background = T.soft}
+            onMouseLeave={e => e.currentTarget.style.background = T.canvas}>
+            Cancel
+          </button>
+          <button type="submit" form="fees-payment-form" disabled={loading} style={btnPrimary}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = T.inkDeep; }}
+            onMouseLeave={e => { e.currentTarget.style.background = T.ink; }}>
+            {loading ? 'Saving...' : 'Record Payment'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

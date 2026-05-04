@@ -93,6 +93,10 @@ const createBackup = async () => {
 
   fs.copyFileSync(dbPath, destinationPath);
 
+  // FIX m4: birthtime is unreliable on Linux (ext4 returns epoch or mtime).
+  // Capture the actual wall-clock time right after the copy instead.
+  const createdAt = new Date().toISOString();
+
   const retention = applyRetentionPolicy();
   const stats = fs.statSync(destinationPath);
 
@@ -100,7 +104,7 @@ const createBackup = async () => {
     fileName,
     path: destinationPath,
     sizeBytes: stats.size,
-    createdAt: stats.birthtime.toISOString(),
+    createdAt,
     retentionRemoved: retention.removed,
   };
 };
@@ -146,6 +150,9 @@ const importBackupFile = (sourcePath, originalFileName = 'imported_backup.db') =
 
   fs.copyFileSync(sourcePath, destinationPath);
 
+  // FIX m4: same as createBackup — capture wall-clock time, don't rely on birthtime
+  const importedAt = new Date().toISOString();
+
   const retention = applyRetentionPolicy();
   const stats = fs.statSync(destinationPath);
 
@@ -153,7 +160,7 @@ const importBackupFile = (sourcePath, originalFileName = 'imported_backup.db') =
     fileName: importedFileName,
     path: destinationPath,
     sizeBytes: stats.size,
-    importedAt: stats.birthtime.toISOString(),
+    importedAt,
     retentionRemoved: retention.removed,
   };
 };

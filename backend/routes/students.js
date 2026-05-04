@@ -408,6 +408,12 @@ router.put('/:id/fees/:year/:term', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'Invalid student ID' });
     }
 
+    // FIX m7: validate year range (same as the add-year route)
+    const yearNum = parseInt(year, 10);
+    if (Number.isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
+      return res.status(400).json({ message: 'Invalid year provided' });
+    }
+
     const row = await get('SELECT * FROM students WHERE id = ?', [studentId]);
     if (!row) {
       return res.status(404).json({ message: 'Student not found' });
@@ -420,10 +426,10 @@ router.put('/:id/fees/:year/:term', verifyToken, async (req, res) => {
     }
 
     // Find or create fees history for the year
-    let feesEntry = student.feesHistory.find((entry) => entry.year === parseInt(year));
+    let feesEntry = student.feesHistory.find((entry) => entry.year === yearNum);
     if (!feesEntry) {
       feesEntry = {
-        year: parseInt(year),
+        year: yearNum,
         term1: { status: 'pending' },
         term2: { status: 'pending' },
         other: { status: 'pending' },
@@ -431,15 +437,17 @@ router.put('/:id/fees/:year/:term', verifyToken, async (req, res) => {
       student.feesHistory.push(feesEntry);
     }
 
-    // Update the specific term
-    if (feesEntry[term]) {
-      feesEntry[term].status = status;
-      if (receiptNo) feesEntry[term].receiptNo = receiptNo;
-      if (modeOfPayment) feesEntry[term].modeOfPayment = modeOfPayment;
-      if (amount) feesEntry[term].amount = amount;
-      if (paidDate) feesEntry[term].paidDate = paidDate;
-      if (comment) feesEntry[term].comment = comment;
+    // FIX M5: always ensure the term object exists before updating
+    if (!feesEntry[term]) {
+      feesEntry[term] = { status: 'pending' };
     }
+
+    feesEntry[term].status = status;
+    if (receiptNo !== undefined && receiptNo !== '') feesEntry[term].receiptNo = receiptNo;
+    if (modeOfPayment !== undefined && modeOfPayment !== '') feesEntry[term].modeOfPayment = modeOfPayment;
+    if (amount !== undefined && amount !== '') feesEntry[term].amount = Number(amount);
+    if (paidDate !== undefined && paidDate !== '') feesEntry[term].paidDate = paidDate;
+    if (comment !== undefined && comment !== '') feesEntry[term].comment = comment;
 
     await run(
       'UPDATE students SET fees_history = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -667,7 +675,7 @@ router.post('/import/excel', verifyToken, async (req, res) => {
           continue;
         }
 
-        // Create new student
+        // FIX C3: coerce height and weight to Number before inserting (same as manual create route)
         await run(
           `INSERT INTO students (
             dob, full_name, gr_no, pan_no, phone_number, caste, religion, address,
@@ -690,8 +698,8 @@ router.post('/import/excel', verifyToken, async (req, res) => {
             studentData.motherTongue || '',
             studentData.subCaste || '',
             studentData.category || '',
-            studentData.height || '',
-            studentData.weight || '',
+            Number(studentData.height) || 0,
+            Number(studentData.weight) || 0,
             studentData.fatherName || '',
             studentData.fatherContact || '',
             studentData.motherName || '',

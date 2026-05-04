@@ -75,7 +75,7 @@ const generateFeesHistory = (index) => {
   ];
 };
 
-const generateSampleStudents = (count = 68) => {
+const generateSampleStudents = (count = 20) => {
   const students = [];
 
   for (let index = 0; index < count; index += 1) {
@@ -107,7 +107,7 @@ const generateSampleStudents = (count = 68) => {
   return students;
 };
 
-const sampleStudents = generateSampleStudents(68);
+const sampleStudents = generateSampleStudents(20);
 
 async function seedDatabase() {
   try {

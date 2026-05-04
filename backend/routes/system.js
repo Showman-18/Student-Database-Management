@@ -113,7 +113,14 @@ router.post('/backups/import', verifyToken, upload.single('backupFile'), async (
 router.post('/backups/restore', verifyToken, async (req, res) => {
   try {
     const { fileName } = req.body;
-    const result = await restoreBackup(fileName);
+
+    // FIX M2: validate fileName before passing to restoreBackup to prevent
+    // unhelpful errors and avoid leaking internal path details
+    if (!fileName || typeof fileName !== 'string' || !fileName.trim()) {
+      return res.status(400).json({ message: 'fileName is required' });
+    }
+
+    const result = await restoreBackup(fileName.trim());
 
     res.json({
       message: 'Backup restored successfully',

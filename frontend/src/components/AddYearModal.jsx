@@ -2,6 +2,47 @@ import React, { useState } from 'react';
 import { X, Calendar, AlertCircle } from 'lucide-react';
 import axios from '../api/axios';
 
+/* ── Design tokens ── */
+const T = {
+  canvas:  '#ffffff',
+  soft:    '#fafafa',
+  hairline:'#e5e5e5',
+  hairlineStrong: '#d4d4d4',
+  ink:     '#000000',
+  inkDeep: '#090909',
+  body:    '#737373',
+  mute:    '#a3a3a3',
+};
+
+const inputStyle = {
+  background: T.canvas,
+  border: `1px solid ${T.hairline}`,
+  borderRadius: 9999,
+  padding: '0 14px',
+  height: 38,
+  fontSize: 13,
+  color: T.ink,
+  outline: 'none',
+  fontFamily: 'inherit',
+  width: '100%',
+  transition: 'border-color 0.15s',
+};
+
+const labelStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  fontSize: 11,
+  fontWeight: 500,
+  color: T.body,
+  marginBottom: 6,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+};
+
+const onFocus = e => { e.target.style.borderColor = T.ink; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)'; };
+const onBlur  = e => { e.target.style.borderColor = T.hairline; e.target.style.boxShadow = 'none'; };
+
 const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] }) => {
   const [year, setYear] = useState('');
   const [loading, setLoading] = useState(false);
@@ -9,110 +50,96 @@ const AddYearModal = ({ student, isOpen, onClose, onSuccess, existingYears = [] 
 
   if (!isOpen || !student) return null;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-
-    // Validate input
     const yearNum = parseInt(year);
     if (!year || isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
-      setError('Please enter a valid year between 1900 and 2100');
-      return;
+      setError('Please enter a valid year between 1900 and 2100'); return;
     }
-
-    // Check for duplicates
     if (existingYears.includes(yearNum)) {
-      setError(`Fees history for year ${year} already exists`);
-      return;
+      setError(`Fees history for year ${year} already exists`); return;
     }
-
-    setLoading(true);
-    setError('');
-
+    setLoading(true); setError('');
     try {
-      await axios.post(`/students/${student._id}/fees/year`, {
-        year: yearNum,
-      });
-
-      setYear('');
-      onSuccess?.();
-      onClose();
+      await axios.post(`/students/${student._id}/fees/year`, { year: yearNum });
+      setYear(''); onSuccess?.(); onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to add year');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
+  };
+
+  const btnPrimary = {
+    background: T.ink, color: '#fff', border: 'none', borderRadius: 9999,
+    padding: '0 20px', height: 36, fontSize: 13, fontWeight: 500,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+    opacity: loading ? 0.6 : 1, transition: 'background 0.15s',
+  };
+  const btnOutline = {
+    background: T.canvas, color: T.ink, border: `1px solid ${T.hairlineStrong}`,
+    borderRadius: 9999, padding: '0 18px', height: 36, fontSize: 13, fontWeight: 500,
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center', fontFamily: 'inherit',
   };
 
   return (
-    <div className="fixed inset-0 bg-black/35 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-  <div className="bg-white rounded-2xl border border-gray-100 max-w-md w-full shadow-card">
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50, backdropFilter: 'blur(2px)', fontFamily: "'DM Sans',ui-sans-serif,system-ui,sans-serif" }}>
+      <div style={{ background: T.canvas, borderRadius: 12, border: `1px solid ${T.hairline}`, maxWidth: 400, width: '100%' }}>
 
-    {/* Header */}
-    <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-white/80 backdrop-blur-md rounded-t-2xl">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Add Fees History Year</h2>
-        <p className="text-gray-400 text-sm mt-0.5">{student.fullName}</p>
-      </div>
-      <button
-        onClick={onClose}
-        className="p-1.5 hover:bg-gray-100 rounded-lg transition text-gray-500"
-      >
-        <X size={20} />
-      </button>
-    </div>
-
-    {/* Content */}
-    <div className="p-8">
-      <form onSubmit={handleSubmit} className="space-y-5">
-
-        {/* Error Message */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex gap-3 text-red-600 text-sm">
-            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-            <div>{error}</div>
+        {/* Header */}
+        <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.hairline}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, color: T.ink, margin: 0 }}>Add Fees Year</h2>
+            <p style={{ fontSize: 12, color: T.mute, margin: '2px 0 0' }}>{student.fullName}</p>
           </div>
-        )}
-
-        {/* Year Input */}
-        <div>
-          <label className="block text-xs font-medium uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-2">
-            <Calendar size={14} className="text-emerald-600" />
-            Academic Year *
-          </label>
-          <input
-            type="number"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            placeholder="e.g., 2024"
-            min="1900"
-            max="2100"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-2">This will create Term 1, Term 2, and Other fees records.</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, borderRadius: 9999, color: T.mute, display: 'flex' }}
+            onMouseEnter={e => e.currentTarget.style.color = T.ink}
+            onMouseLeave={e => e.currentTarget.style.color = T.mute}>
+            <X size={17} />
+          </button>
         </div>
 
-      </form>
-    </div>
+        {/* Body */}
+        <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-    {/* Footer */}
-    <div className="flex justify-end gap-3 px-8 py-6 border-t border-gray-100 bg-white/80 backdrop-blur-md rounded-b-2xl">
-      <button
-        onClick={onClose}
-        className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium text-sm"
-      >
-        Cancel
-      </button>
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-100 transition font-medium text-sm disabled:opacity-50"
-      >
-        {loading ? 'Adding...' : 'Add Year'}
-      </button>
-    </div>
+          {error && (
+            <div style={{ padding: '10px 14px', background: T.soft, border: `1px solid ${T.hairline}`, borderRadius: 8, fontSize: 13, color: '#dc2626', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />{error}
+            </div>
+          )}
 
-  </div>
-</div>
+          <div>
+            <label style={labelStyle}><Calendar size={12} />Academic Year *</label>
+            <input
+              type="number"
+              value={year}
+              onChange={e => setYear(e.target.value)}
+              placeholder="e.g., 2024"
+              min="1900"
+              max="2100"
+              style={inputStyle}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+            <p style={{ fontSize: 11, color: T.mute, marginTop: 6 }}>Creates Term 1, Term 2, and Other fee records.</p>
+          </div>
+
+        </form>
+
+        {/* Footer */}
+        <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.hairline}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button type="button" onClick={onClose} style={btnOutline}
+            onMouseEnter={e => e.currentTarget.style.background = T.soft}
+            onMouseLeave={e => e.currentTarget.style.background = T.canvas}>
+            Cancel
+          </button>
+          <button type="submit" onClick={handleSubmit} disabled={loading} style={btnPrimary}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = T.inkDeep; }}
+            onMouseLeave={e => { e.currentTarget.style.background = T.ink; }}>
+            {loading ? 'Adding...' : 'Add Year'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

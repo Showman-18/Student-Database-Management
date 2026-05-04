@@ -1,5 +1,50 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const fs = require('fs');
+const crypto = require('crypto');
+
+// ── Environment setup ──────────────────────────────────────────────────────
+// In development, load .env from the backend folder.
+// In production (packaged Electron app), .env is intentionally excluded from
+// the bundle. All values fall back to safe defaults defined below.
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
+
+// JWT_SECRET: auto-generate a strong random secret if not set via .env.
+// This is written to userData so it persists across app restarts — without
+// this, every restart would invalidate all existing login sessions.
+if (!process.env.JWT_SECRET) {
+  const { app } = (() => {
+    try { return require('electron'); } catch { return {}; }
+  })();
+
+  let secretStorePath;
+  if (app && app.getPath) {
+    // Running inside packaged Electron — store in userData
+    secretStorePath = path.join(app.getPath('userData'), '.jwt_secret');
+  } else {
+    // Running in dev without Electron (e.g. plain node Index.js)
+    secretStorePath = path.join(__dirname, 'data', '.jwt_secret');
+  }
+
+  try {
+    if (fs.existsSync(secretStorePath)) {
+      process.env.JWT_SECRET = fs.readFileSync(secretStorePath, 'utf8').trim();
+    } else {
+      const generated = crypto.randomBytes(48).toString('hex');
+      fs.mkdirSync(path.dirname(secretStorePath), { recursive: true });
+      fs.writeFileSync(secretStorePath, generated, { mode: 0o600 });
+      process.env.JWT_SECRET = generated;
+    }
+  } catch (err) {
+    // Last resort fallback — not ideal but won't crash the app
+    process.env.JWT_SECRET = crypto.randomBytes(48).toString('hex');
+    console.warn('Could not persist JWT_SECRET:', err.message);
+  }
+}
+
+// ── App bootstrap ──────────────────────────────────────────────────────────
 const express = require('express');
 const cors = require('cors');
 const { initDatabase } = require('./db');

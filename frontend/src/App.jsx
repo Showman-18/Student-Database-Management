@@ -14,10 +14,10 @@ function App() {
     <Router>
       <Suspense
         fallback={
-          <div className="min-h-screen bg-gradient-to-br from-emerald-50/40 via-white to-green-50/30 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-gray-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-500 font-medium">Loading...</p>
+          <div style={{ minHeight:'100vh', background:'#ffffff', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ width:32, height:32, border:'2px solid #e5e5e5', borderTopColor:'#000', borderRadius:'50%', animation:'spin 0.7s linear infinite', margin:'0 auto 12px' }}></div>
+              <p style={{ color:'#737373', fontSize:14, margin:0 }}>Loading...</p>
             </div>
           </div>
         }

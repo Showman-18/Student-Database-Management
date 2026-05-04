@@ -4,19 +4,88 @@
   "private": true,
   "description": "Electron desktop wrapper for Student Database Management",
   "main": "electron/main.cjs",
+  "author": "Your Name",
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:electron": "wait-on tcp:3000 tcp:5173 && cross-env ELECTRON_DEV=true electron .",
     "desktop:dev": "concurrently -k \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:electron\"",
     "build:frontend": "npm --prefix frontend run build",
+    "rebuild:native": "electron-rebuild -f -w sqlite3 -m backend",
     "desktop": "npm run build:frontend && electron .",
-    "seed": "npm --prefix backend run seed"
+    "seed": "npm --prefix backend run seed",
+    "dist": "npm run build:frontend && electron-builder",
+    "dist:mac": "npm run build:frontend && electron-builder --mac",
+    "dist:win": "npm run build:frontend && electron-builder --win",
+    "dist:linux": "npm run build:frontend && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.yourname.studentmanagement",
+    "productName": "Student Management",
+    "copyright": "Copyright © 2024",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "backend/node_modules/**/*",
+      "frontend/dist/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*",
+      "!backend/node_modules/.cache/**/*",
+      "!backend/.env",
+      "!backend/seed.js",
+      "!**/*.md",
+      "!**/.DS_Store",
+      "!frontend/src/**/*",
+      "!frontend/public/**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        }
+      ],
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Education"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Student Management"
+    },
+    "dmg": {
+      "title": "Student Management Installer",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
+    "npmRebuild": true
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^37.2.6",
+    "electron": "^41.5.0",
+    "electron-builder": "^26.8.1",
     "wait-on": "^8.0.5"
   }
 }

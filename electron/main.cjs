@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 
 const isDev = process.env.ELECTRON_DEV === 'true';
+// PRODUCTION_PREVIEW is set when running "npm run desktop" locally —
+// it makes the app behave exactly like the packaged version but still
+// stores data in backend/data/ so you can inspect it easily.
+const isProductionPreview = !isDev && !app.isPackaged;
 const backendPort = process.env.PORT || '3000';
 let mainWindow = null;
 
@@ -33,9 +37,35 @@ const waitForServer = (url, timeoutMs = 20000) =>
     probe();
   });
 
+// Set SQLITE_DB_PATH and SQLITE_BACKUP_DIR BEFORE requiring backend
+// so db.js picks them up correctly on first load.
+const setDataPaths = () => {
+  let dataDir;
+
+  if (app.isPackaged) {
+    // Packaged .dmg / .exe — store data in OS user data folder
+    // Mac:     ~/Library/Application Support/Student Management/
+    // Windows: %APPDATA%\Student Management\
+    dataDir = app.getPath('userData');
+  } else {
+    // "npm run desktop" local preview — store data in backend/data/
+    // so it behaves like dev mode and is easy to inspect
+    dataDir = path.join(__dirname, '..', 'backend', 'data');
+  }
+
+  fs.mkdirSync(dataDir, { recursive: true });
+
+  process.env.SQLITE_DB_PATH =
+    process.env.SQLITE_DB_PATH || path.join(dataDir, 'student_management.db');
+
+  process.env.SQLITE_BACKUP_DIR =
+    process.env.SQLITE_BACKUP_DIR || path.join(dataDir, 'backups');
+};
+
 const startBackend = () => {
+  // CRITICAL: set paths before require so db.js reads correct values
+  setDataPaths();
   try {
-    // Boot the existing Express app in this Electron process.
     require(path.join(__dirname, '..', 'backend', 'Index.js'));
   } catch (error) {
     dialog.showErrorBox('Backend Startup Failed', error.message);
@@ -46,12 +76,12 @@ const startBackend = () => {
 const ensureBackendRunning = async () => {
   const backendUrl = `http://localhost:${backendPort}/`;
 
-  // If backend is already running (dev mode or another instance), reuse it.
+  // If backend already running (dev:electron mode), reuse it
   try {
     await waitForServer(backendUrl, 1200);
     return;
   } catch {
-    // Not running yet, start locally.
+    // not running yet — start it
   }
 
   startBackend();
@@ -105,10 +135,6 @@ const createMainWindow = async () => {
 };
 
 app.whenReady().then(async () => {
-  const userDataDir = app.getPath('userData');
-  process.env.SQLITE_DB_PATH = process.env.SQLITE_DB_PATH || path.join(userDataDir, 'student_management.db');
-  process.env.SQLITE_BACKUP_DIR = process.env.SQLITE_BACKUP_DIR || path.join(userDataDir, 'backups');
-
   try {
     await ensureBackendRunning();
     await createMainWindow();
