@@ -82,7 +82,6 @@ const validateStudentPayload = (student) => {
   if (!student.dob) return 'Date of birth is required';
   if (!student.fullName) return 'Full name is required';
   if (!student.grNo) return 'Reg No is required';
-  if (!student.panNo) return 'PAN number is required';
   if (!student.phoneNumber) return 'Mobile number is required';
   if (!student.idNo) return 'Id number is required';
   if (!student.aadharNo) return 'Aadhar number is required';
@@ -91,8 +90,7 @@ const validateStudentPayload = (student) => {
   if (!student.caste) return 'Caste is required';
   if (!student.subCaste) return 'Sub caste is required';
   if (!student.category) return 'Category is required';
-  if (student.height === '') return 'Height is required';
-  if (student.weight === '') return 'Weight is required';
+  // Height and weight are optional — only validate when provided
   if (!student.address) return 'Address is required';
   if (!student.religion) return 'Religion is required';
   if (!student.fatherName) return 'Father name is required';
@@ -101,15 +99,19 @@ const validateStudentPayload = (student) => {
   if (!student.motherContact) return 'Mother contact is required';
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(student.dob)) return 'Date of birth must be in YYYY-MM-DD format';
-  if (!PAN_REGEX.test(student.panNo.toUpperCase())) return 'PAN number must be in valid format';
   if (!AADHAR_REGEX.test(student.aadharNo)) return 'Aadhar number must be exactly 12 digits';
   if (!BLOOD_GROUP_VALUES.has(student.bloodGroup)) return 'Invalid blood group';
   if (!CATEGORY_VALUES.has(student.category.toLowerCase())) return 'Invalid category';
-  if (!Number.isFinite(Number(student.height)) || Number(student.height) < 30 || Number(student.height) > 300) {
-    return 'Height must be between 30 and 300';
+  if (student.height !== '') {
+    if (!Number.isFinite(Number(student.height)) || Number(student.height) < 30 || Number(student.height) > 300) {
+      return 'Height must be between 30 and 300';
+    }
   }
-  if (!Number.isFinite(Number(student.weight)) || Number(student.weight) < 1 || Number(student.weight) > 500) {
-    return 'Weight must be between 1 and 500';
+
+  if (student.weight !== '') {
+    if (!Number.isFinite(Number(student.weight)) || Number(student.weight) < 1 || Number(student.weight) > 500) {
+      return 'Weight must be between 1 and 500';
+    }
   }
 
   return validatePhoneFields(student);
@@ -176,7 +178,7 @@ router.post('/', verifyToken, async (req, res) => {
       dob: normalizeValue(dob),
       fullName: normalizeValue(fullName),
       grNo: normalizeValue(grNo),
-      panNo: normalizeValue(panNo).toUpperCase(),
+      panNo: normalizeValue(panNo) ? normalizeValue(panNo).toUpperCase() : '',
       phoneNumber: normalizeValue(phoneNumber),
       caste: normalizeValue(caste),
       religion: normalizeValue(religion),
@@ -202,7 +204,9 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Check for duplicates
     const existingGrNo = await get('SELECT id FROM students WHERE gr_no = ?', [normalizedStudent.grNo]);
-    const existingPanNo = await get('SELECT id FROM students WHERE pan_no = ?', [normalizedStudent.panNo]);
+    const existingPanNo = normalizedStudent.panNo
+      ? await get('SELECT id FROM students WHERE pan_no = ?', [normalizedStudent.panNo])
+      : null;
 
     if (existingGrNo) {
       return res.status(400).json({ message: 'GR No already exists' });
@@ -223,7 +227,7 @@ router.post('/', verifyToken, async (req, res) => {
         normalizedStudent.dob,
         normalizedStudent.fullName,
         normalizedStudent.grNo,
-        normalizedStudent.panNo,
+        normalizedStudent.panNo || null,
         normalizedStudent.phoneNumber,
         normalizedStudent.caste,
         normalizedStudent.religion,
@@ -234,8 +238,8 @@ router.post('/', verifyToken, async (req, res) => {
         normalizedStudent.motherTongue,
         normalizedStudent.subCaste,
         normalizedStudent.category.toLowerCase(),
-        Number(normalizedStudent.height),
-        Number(normalizedStudent.weight),
+        normalizedStudent.height === '' ? null : Number(normalizedStudent.height),
+        normalizedStudent.weight === '' ? null : Number(normalizedStudent.weight),
         normalizedStudent.fatherName,
         normalizedStudent.fatherContact,
         normalizedStudent.motherName,
@@ -305,14 +309,22 @@ router.put('/:id', verifyToken, async (req, res) => {
           value = normalizeValue(value);
         }
 
-        if (['fullName', 'grNo', 'panNo', 'phoneNumber'].includes(key) && value === '') {
+        // Do not overwrite numeric fields with empty string on update — treat as "not provided"
+        if (['height', 'weight'].includes(key) && value === '') {
+          continue;
+        }
+
+        if (['fullName', 'grNo', 'phoneNumber'].includes(key) && value === '') {
           const labels = {
             fullName: 'Full name',
             grNo: 'GR No',
-            panNo: 'PAN No',
             phoneNumber: 'Phone number',
           };
           return res.status(400).json({ message: `${labels[key]} is required` });
+        }
+
+        if (key === 'panNo' && value === '') {
+          value = null;
         }
 
         if (key !== 'feesHistory') {
@@ -354,7 +366,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       }
     }
 
-    if (Object.prototype.hasOwnProperty.call(req.body, 'panNo')) {
+    if (Object.prototype.hasOwnProperty.call(req.body, 'panNo') && normalizeValue(req.body.panNo) !== '') {
       const duplicatePan = await get('SELECT id FROM students WHERE pan_no = ? AND id != ?', [
         normalizeValue(req.body.panNo).toUpperCase(),
         studentId,
@@ -589,7 +601,7 @@ router.post('/import/excel', verifyToken, async (req, res) => {
         dob: normalizeValue(studentData.dob),
         fullName: normalizeValue(studentData.fullName),
         grNo: normalizeValue(studentData.grNo),
-        panNo: normalizeValue(studentData.panNo).toUpperCase(),
+        panNo: normalizeValue(studentData.panNo) ? normalizeValue(studentData.panNo).toUpperCase() : '',
         phoneNumber: normalizeValue(studentData.phoneNumber),
         caste: normalizeValue(studentData.caste),
         religion: normalizeValue(studentData.religion),
@@ -663,7 +675,9 @@ router.post('/import/excel', verifyToken, async (req, res) => {
 
         // Check if student already exists
         const existingGrNo = await get('SELECT id FROM students WHERE gr_no = ?', [studentData.grNo]);
-        const existingPanNo = await get('SELECT id FROM students WHERE pan_no = ?', [studentData.panNo]);
+        const existingPanNo = studentData.panNo
+          ? await get('SELECT id FROM students WHERE pan_no = ?', [studentData.panNo])
+          : null;
 
         if (existingGrNo || existingPanNo) {
           results.failed++;
@@ -687,7 +701,7 @@ router.post('/import/excel', verifyToken, async (req, res) => {
             studentData.dob,
             studentData.fullName,
             studentData.grNo,
-            studentData.panNo,
+            studentData.panNo || null,
             studentData.phoneNumber,
             studentData.caste || '',
             studentData.religion || '',
@@ -698,8 +712,8 @@ router.post('/import/excel', verifyToken, async (req, res) => {
             studentData.motherTongue || '',
             studentData.subCaste || '',
             studentData.category || '',
-            Number(studentData.height) || 0,
-            Number(studentData.weight) || 0,
+            studentData.height === '' ? null : Number(studentData.height),
+            studentData.weight === '' ? null : Number(studentData.weight),
             studentData.fatherName || '',
             studentData.fatherContact || '',
             studentData.motherName || '',

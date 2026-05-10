@@ -193,8 +193,8 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                 <Field label="Aadhar No *">
                   <input type="text" name="aadharNo" value={formData.aadharNo} onChange={handleChange} placeholder="12-digit Aadhar" required inputMode="numeric" pattern="\d{12}" minLength={12} maxLength={12} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
-                <Field label="PAN No *">
-                  <input type="text" name="panNo" value={formData.panNo} onChange={handleChange} placeholder="ABCDE1234F" required pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" maxLength={10} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                <Field label="PAN No">
+                  <input type="text" name="panNo" value={formData.panNo} onChange={handleChange} placeholder="ABCDE1234F" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" maxLength={10} style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
                 <Field label="Blood Group *">
                   <select name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} required style={selectStyle} onFocus={onFocus} onBlur={onBlur}>
@@ -228,11 +228,11 @@ const CreateStudentModal = ({ isOpen, onClose, onSuccess }) => {
                   <input type="text" name="religion" value={formData.religion} onChange={handleChange} placeholder="e.g., Hindu" required style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                 </Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
-                  <Field label="Height (cm) *">
-                    <input type="number" name="height" value={formData.height} onChange={handleChange} placeholder="170" required min={30} max={300} step="0.1" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <Field label="Height (cm)">
+                    <input type="number" name="height" value={formData.height} onChange={handleChange} placeholder="170" min={30} max={300} step="0.1" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
-                  <Field label="Weight (kg) *">
-                    <input type="number" name="weight" value={formData.weight} onChange={handleChange} placeholder="60" required min={1} max={500} step="0.1" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
+                  <Field label="Weight (kg)">
+                    <input type="number" name="weight" value={formData.weight} onChange={handleChange} placeholder="60" min={1} max={500} step="0.1" style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
                   </Field>
                 </div>
               </Grid2>

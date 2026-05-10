@@ -45,7 +45,9 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "category": "public.app-category.education"
@@ -54,12 +56,17 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Education"
     },
     "nsis": {
@@ -72,8 +79,16 @@
     "dmg": {
       "title": "Student Management Installer",
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "nodeGypRebuild": false,
@@ -81,7 +96,7 @@
     "npmRebuild": true
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.7.1",
+    "@electron/rebuild": "^4.0.4",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^41.5.0",
